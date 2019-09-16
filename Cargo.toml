@@ -1,0 +1,9 @@
+[package]
+name = "chess"
+version = "0.1.0"
+authors = ["xiaanyin <xiaanyin@gmail.com>"]
+
+[dependencies]
+serde = "*"
+serde_yaml = "*"
+serde_derive = "*"

@@ -1,0 +1,6 @@
+/target
+/.idea
+*.xlsx
+/backup
+/BoardStructure.md
+/definition.txt
