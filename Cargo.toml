@@ -7,3 +7,4 @@ authors = ["xiaanyin <xiaanyin@gmail.com>"]
 serde = "*"
 serde_yaml = "*"
 serde_derive = "*"
+lazy_static = "*"
