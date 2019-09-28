@@ -5,6 +5,9 @@ use serde_yaml;
 use std::fs::File;
 use std::io::prelude::*;
 
+use game::*;
+use std::borrow::Cow;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     pub server_ip: String,
@@ -41,12 +44,17 @@ impl Server {
     fn handle_connection(&self, mut stream: TcpStream) {
         let mut buffer = [0; 100];
         stream.read(&mut buffer).unwrap();
-        let message = String::from_utf8_lossy(&buffer[..]);
-        let chess_board = message.trim_end_matches('\u{0}');
-        println!("[{}]", chess_board);
+        let message: Cow<str> = String::from_utf8_lossy(&buffer[..]);
+        let chess_board: &str = message.trim_end_matches('\u{0}');
 
-        // TODO
-        let response = "ABCD";
+        let mut board: Board = Board::new();
+
+        println!("[{}]", chess_board);
+        board.init_board(chess_board);
+
+        let response: String = board.search();
+        println!("[{}]", response);
+
         stream.write(response.as_bytes()).unwrap();
         stream.flush().unwrap();
     }

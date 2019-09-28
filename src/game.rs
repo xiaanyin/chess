@@ -16,6 +16,11 @@ const MAX_CELLS_SIZE: usize = WIDTH * HEIGHT;
 // 最大棋子数
 const MAX_PIECES_SIZE: usize = 32;
 
+const STEP_INCREASE: bool = true;
+const STEP_DECREASE: bool = false;
+const PROCESS_ROW: bool = true;
+const PROCESS_COLUMN: bool = false;
+
 // 帅 士 相 马 车 炮 兵
 const RED_KING: char = 'K';
 const RED_ADVISER: char = 'A';
@@ -214,13 +219,7 @@ impl MinMaxNode {
     }
 }
 
-//#[derive(Debug, Serialize, Deserialize, PartialEq)]
-//enum Process {
-//    Row,
-//    Column,
-//}
-
-struct Board {
+pub struct Board {
     pieces_count: usize,
     positions: [Option<char>; MAX_CELLS_SIZE],
     cache_red_king: usize,
@@ -258,17 +257,22 @@ impl Board {
     }
 
     pub fn search(&mut self) -> String {
-        let search_depth: usize = match self.pieces_count {
-            0..=4 => 6,
-            5..=6 => 5,
-            7..=16 => 4,
-            17..=28 => 3,
-            _ => 2,
-        };
+        //        let search_depth: usize = match self.pieces_count {
+        //            0..=4 => 6,
+        //            5..=6 => 5,
+        //            7..=16 => 4,
+        //            17..=28 => 3,
+        //            _ => 2,
+        //        };
+        let search_depth: usize = 2usize;
 
         let mut best_move: Option<MinMaxNode> = None;
         let mut best_value = i32::min_value();
         let mut all_moves: Vec<MinMaxNode> = self.generate_all_moves(&Player::Black);
+
+        for node in &all_moves {
+            println!("piece [{}], from[{}], to[{}]", node.piece, node.from, node.to);
+        }
 
         while let Some(node) = all_moves.pop() {
             let position_to_backup: Option<char> = self.temporary_move(node.from, node.to);
@@ -284,9 +288,16 @@ impl Board {
             }
             self.recovery(node.from, node.to, position_to_backup);
         }
-        // TODO translate best_move to move instruction fen str
-        // return best_move
-        String::from("test")
+        self.translate(best_move.unwrap().from, best_move.unwrap().to)
+    }
+
+    fn translate(&self, from: usize, to: usize) -> String {
+        let mut ret: String = String::new();
+        ret.push_str(&INDEX_ROW[from].to_string());
+        ret.push_str(&INDEX_COLUMN[from].to_string());
+        ret.push_str(&INDEX_ROW[to].to_string());
+        ret.push_str(&INDEX_COLUMN[to].to_string());
+        ret
     }
 
     fn min_max(&mut self, depth: usize, min: i32, max: i32, turn: &Player) -> i32 {
@@ -419,73 +430,151 @@ impl Board {
         };
     }
 
+    /// 所有棋子可能移动位置生成
+    ///
+    /// 生成棋盘上所有棋子可能移动的所有位置。
+    ///
+    /// * `turn` - 红色或者黑色，当前棋子的移动方。
     fn generate_all_moves(&mut self, turn: &Player) -> Vec<MinMaxNode> {
         let mut all_moves: Vec<MinMaxNode> = Vec::new();
-
         for i in 0..MAX_CELLS_SIZE {
-            match self.positions[i] {
-                None => {}
-                Some(p) => match p {
+            if let Some(p) = self.positions[i] {
+                match p {
                     RED_KING => {
                         self.generate_king(&mut all_moves, &turn, RED_KING, i);
                     }
                     RED_ADVISER => {
-                        self.generate_king(&mut all_moves, &turn, RED_ADVISER, i);
+                        self.generate_adviser(&mut all_moves, &turn, RED_ADVISER, i);
                     }
                     RED_BISHOP => {
-                        self.generate_king(&mut all_moves, &turn, RED_BISHOP, i);
+                        self.generate_bishop(&mut all_moves, &turn, RED_BISHOP, i);
                     }
                     RED_KNIGHT => {
                         self.generate_knight(&mut all_moves, &turn, RED_KNIGHT, i);
                     }
-                    RED_ROOK => {}
-                    RED_CANNON => {}
-                    RED_PAWN => {}
+                    RED_ROOK => {
+                        self.generate_rook(&mut all_moves, &turn, RED_ROOK, i);
+                    }
+                    RED_CANNON => {
+                        self.generate_cannon(&mut all_moves, &turn, RED_CANNON, i);
+                    }
+                    RED_PAWN => {
+                        self.generate_pawn(&mut all_moves, &turn, RED_PAWN, i);
+                    }
                     BLACK_KING => {
                         self.generate_king(&mut all_moves, &turn, BLACK_KING, i);
                     }
                     BLACK_ADVISER => {
-                        self.generate_king(&mut all_moves, &turn, RED_ADVISER, i);
+                        self.generate_adviser(&mut all_moves, &turn, BLACK_ADVISER, i);
                     }
                     BLACK_BISHOP => {
-                        self.generate_king(&mut all_moves, &turn, BLACK_BISHOP, i);
+                        self.generate_bishop(&mut all_moves, &turn, BLACK_BISHOP, i);
                     }
                     BLACK_KNIGHT => {
                         self.generate_knight(&mut all_moves, &turn, BLACK_KNIGHT, i);
                     }
-                    BLACK_ROOK => {}
-                    BLACK_CANNON => {}
-                    BLACK_PAWN => {}
+                    BLACK_ROOK => {
+                        self.generate_rook(&mut all_moves, &turn, BLACK_ROOK, i);
+                    }
+                    BLACK_CANNON => {
+                        self.generate_cannon(&mut all_moves, &turn, BLACK_CANNON, i);
+                    }
+                    BLACK_PAWN => {
+                        self.generate_pawn(&mut all_moves, &turn, BLACK_PAWN, i);
+                    }
                     _ => {}
-                },
+                }
             }
         }
-        //        let pieces_size = self.pieces.len();
-        //        for i in 0..pieces_size {
-        //            //            println!("{:?}", p)
-        //            //&self.pieces
-        //            self.generate_king(&Player::Red);
-        //        }
-        // TODO
-        Vec::new()
+        all_moves
     }
-    //         0  1  2| 3  4  5| 6  7  8
-    //         9 10 11|12 13 14|15 16 17
-    //        18 19 20|21 22 23|24 25 26
-    //        27 28 29|30 31 32|33 34 35
-    //        36 37 38|39 40 41|42 43 44
-    //
-    //        45 46 47|48 49 50|51 52 53
-    //        54 55 56|57 58 59|60 61 62
-    //        63 64 65|66 67 68|69 70 71
-    //        72 73 74|75 76 77|78 79 80
-    //        81 82 83|84 85 86|87 88 89
 
-    //        struct MinMaxNode {
-    //            piece: char,
-    //            from: usize,
-    //            to: usize,
-    //        }
+    /// 兵（卒）可能移动位置生成
+    ///
+    /// 生成兵（卒）可能移动的所有位置。
+    ///
+    /// * `all_moves` - 所有可移动棋子集合。
+    /// * `turn` - 红色或者黑色，当前棋子的移动方。
+    /// * `piece_from` - 兵（卒）棋子。
+    /// * `position_from` - 兵（卒）当前位置。
+    fn generate_pawn(
+        &mut self,
+        all_moves: &mut Vec<MinMaxNode>,
+        turn: &Player,
+        piece_from: char,
+        position_from: usize,
+    ) {
+        // 0~9
+        let row_number: usize = INDEX_ROW[position_from];
+        // 0~8
+        let column_number: usize = INDEX_COLUMN[position_from];
+
+        let row_positions: &[usize; WIDTH] = &INDEX_ROW_POSITIONS[row_number];
+        let column_positions: &[usize; HEIGHT] = &INDEX_COLUMN_POSITIONS[column_number];
+
+        let mut piece_moves: Vec<usize> = Vec::new();
+//        [0, 9, 18, 27, 36, 45, 54, 63, 72, 81],
+//        [1, 10, 19, 28, 37, 46, 55, 64, 73, 82],
+//        [2, 11, 20, 29, 38, 47, 56, 65, 74, 83],
+//        [3, 12, 21, 30, 39, 48, 57, 66, 75, 84],
+//        [4, 13, 22, 31, 40, 49, 58, 67, 76, 85],
+//        [5, 14, 23, 32, 41, 50, 59, 68, 77, 86],
+//        [6, 15, 24, 33, 42, 51, 60, 69, 78, 87],
+//        [7, 16, 25, 34, 43, 52, 61, 70, 79, 88],
+//        [8, 17, 26, 35, 44, 53, 62, 71, 80, 89],
+        match turn {
+            Player::Red => {
+                if row_number > 0usize {
+                    piece_moves.push(column_positions[row_number - 1usize]);
+                }
+                if row_number < 5usize {
+                    if column_number > 0usize {
+                        piece_moves.push(row_positions[column_number - 1usize]);
+                    }
+                    if column_number < 8usize {
+                        piece_moves.push(row_positions[column_number + 1usize]);
+                    }
+                }
+            }
+            Player::Black => {
+                if row_number < 9usize {
+                    piece_moves.push(column_positions[row_number + 1usize]);
+                }
+                if row_number > 4usize {
+                    if column_number > 0usize {
+                        piece_moves.push(row_positions[column_number - 1usize]);
+                    }
+                    if column_number < 8usize {
+                        piece_moves.push(row_positions[column_number + 1usize]);
+                    }
+                }
+            }
+        }
+
+        self.generate_general_moves(all_moves, &turn, piece_from, position_from, &piece_moves);
+    }
+
+    /// 炮可能移动位置生成
+    ///
+    /// 生成炮可能移动的所有位置。
+    ///
+    /// * `all_moves` - 所有可移动棋子集合。
+    /// * `turn` - 红色或者黑色，当前棋子的移动方。
+    /// * `piece_from` - 炮棋子。
+    /// * `position_from` - 炮当前位置。
+    fn generate_cannon(
+        &mut self,
+        all_moves: &mut Vec<MinMaxNode>,
+        turn: &Player,
+        piece_from: char,
+        position_from: usize,
+    ) {
+        let skip: usize = 1usize;
+        let mut piece_moves: Vec<usize> =
+            self.generate_piece_move_by_four_direction(position_from, skip);
+
+        self.generate_general_moves(all_moves, &turn, piece_from, position_from, &piece_moves);
+    }
 
     /// 车（車）可能移动位置生成
     ///
@@ -502,83 +591,146 @@ impl Board {
         piece_from: char,
         position_from: usize,
     ) {
-        // 0~9
-        let row_number = INDEX_ROW[position_from];
-        // 0~8
-        let column_number = INDEX_COLUMN[position_from];
-        // 生成所有位置
-        let mut piece_moves: Vec<usize> = Vec::new();
-
-        let row_positions = &INDEX_ROW_POSITIONS[row_number];
-        let column_positions = &INDEX_COLUMN_POSITIONS[column_number];
-
-        // TODO
-
-        // up
-        for i in (0usize..row_number).rev() {
-            let position: usize = column_positions[i];
-            piece_moves.push(position);
-            if self.positions[position].is_some() {
-                break;
-            }
-        }
-
-        // down
-        for i in (row_number + 1usize)..10usize {
-            let position: usize = column_positions[i];
-            piece_moves.push(position);
-            if self.positions[position].is_some() {
-                break;
-            }
-        }
-
-        // right
-        for i in (column_number + 1usize)..9usize {
-            let position: usize = row_positions[i];
-            piece_moves.push(position);
-            if self.positions[position].is_some() {
-                break;
-            }
-        }
-
-        // left
-        for i in (0usize..column_number).rev() {
-            let position: usize = row_positions[i];
-            piece_moves.push(position);
-            if self.positions[position].is_some() {
-                break;
-            }
-        }
+        let skip: usize = 0usize;
+        let piece_moves: Vec<usize> =
+            self.generate_piece_move_by_four_direction(position_from, skip);
 
         self.generate_general_moves(all_moves, &turn, piece_from, position_from, &piece_moves);
     }
 
-    /// 车（車）可能移动位置生成
+    /// 直线移动棋子可能移动位置生成（车/炮）
     ///
-    /// 生成车（車）可能移动的所有位置。
+    /// 根据对象棋子的上下左右四个方向生成可能移动位置。
     ///
-    /// * `all_moves` - 所有可移动棋子集合。
-    /// * `turn` - 红色或者黑色，当前棋子的移动方。
-    /// * `piece_from` - 车（車）棋子。
-    /// * `position_from` - 马车（車）当前位置。
+    /// * `start` - 棋子开始移动位置。
+    /// * `step` - 坐标增减(STEP_INCREASE或者STEP_DECREASE)。
+    /// * `process` - 方向（PROCESS_ROW或者PROCESS_COLUMN）。
+    /// * `end` - 棋子最多移动结束位置。
+    /// * `piece_moves` - 棋子所有移动坐标。
+    /// * `skip` - 跳过棋子数（炮:1,车:0）。
+    fn generate_piece_move_by_four_direction(
+        &self,
+        position_from: usize,
+        skip: usize,
+    ) -> Vec<usize> {
+        // 0~9
+        let row_number: usize = INDEX_ROW[position_from];
+        // 0~8
+        let column_number: usize = INDEX_COLUMN[position_from];
+
+        let row_positions: &[usize; WIDTH] = &INDEX_ROW_POSITIONS[row_number];
+        let column_positions: &[usize; HEIGHT] = &INDEX_COLUMN_POSITIONS[column_number];
+
+        let mut piece_moves: Vec<usize> = Vec::new();
+
+        // up
+        if row_number > 0usize {
+            self.generate_piece_move_by_line(
+                row_number - 1usize,
+                STEP_DECREASE,
+                PROCESS_COLUMN,
+                0usize,
+                row_positions,
+                column_positions,
+                &mut piece_moves,
+                skip,
+            );
+        }
+
+        // down
+        if row_number < 9usize {
+            self.generate_piece_move_by_line(
+                row_number + 1usize,
+                STEP_INCREASE,
+                PROCESS_COLUMN,
+                9usize,
+                row_positions,
+                column_positions,
+                &mut piece_moves,
+                skip,
+            );
+        }
+
+        // right
+        if column_number < 8usize {
+            self.generate_piece_move_by_line(
+                column_number + 1usize,
+                STEP_INCREASE,
+                PROCESS_ROW,
+                8usize,
+                row_positions,
+                column_positions,
+                &mut piece_moves,
+                skip,
+            );
+        }
+
+        // left
+        if column_number > 0usize {
+            self.generate_piece_move_by_line(
+                column_number - 1usize,
+                STEP_DECREASE,
+                PROCESS_ROW,
+                0usize,
+                row_positions,
+                column_positions,
+                &mut piece_moves,
+                skip,
+            );
+        }
+
+        piece_moves
+    }
+
+    /// 直线移动棋子可能移动位置生成（车/炮）
+    ///
+    /// 生成车（车/炮）可能移动的所有位置。
+    ///
+    /// * `start` - 棋子开始移动位置。
+    /// * `step` - 坐标增减(STEP_INCREASE或者STEP_DECREASE)。
+    /// * `process` - 方向（PROCESS_ROW或者PROCESS_COLUMN）。
+    /// * `end` - 棋子最多移动结束位置。
+    /// * `row_positions` - 棋子所在行的所有位置坐标。
+    /// * `column_positions` - 棋子所在列的所有位置坐标。
+    /// * `piece_moves` - 棋子所有移动坐标。
+    /// * `skip` - 跳过棋子数（炮:1,车:0）。
     fn generate_piece_move_by_line(
         &self,
         start: usize,
+        step: bool,
+        process: bool,
         end: usize,
         row_positions: &[usize; WIDTH],
         column_positions: &[usize; HEIGHT],
-        is_process_row: bool,
-        is_empty_only: bool,
+        piece_moves: &mut Vec<usize>,
+        skip: usize,
     ) {
-        // TODO
-        for i in (start..end).rev() {
-            let position: usize = match is_process_row {
-                true => row_positions[i],
-                false => column_positions[i],
+        let mut start_copy: usize = start;
+        let mut skip_copy: usize = skip;
+        loop {
+            let position: usize = match process {
+                PROCESS_ROW => row_positions[start_copy],
+                PROCESS_COLUMN => column_positions[start_copy],
             };
-            piece_moves.push(position);
+
             if self.positions[position].is_some() {
+                if skip_copy == 0usize {
+                    piece_moves.push(position);
+                    break;
+                } else {
+                    skip_copy -= 1usize;
+                }
+            } else {
+                piece_moves.push(position);
+            }
+
+            if start_copy == end {
                 break;
+            } else {
+                match step {
+                    STEP_INCREASE => start_copy += 1,
+                    STEP_DECREASE => start_copy -= 1,
+                }
             }
         }
     }
@@ -707,9 +859,9 @@ impl Board {
         self.generate_general_moves(all_moves, &turn, piece_from, position_from, &piece_moves);
     }
 
-    /// 棋子可能移动位置生成
+    /// 固定坐标移动棋子可能移动位置生成
     ///
-    /// 生成棋子可能移动的所有位置。
+    /// 生成固定坐标移动棋子可能移动的所有位置。
     ///
     /// * `all_moves` - 所有可移动棋子集合。
     /// * `turn` - 红色或者黑色，当前棋子的移动方。
@@ -763,9 +915,10 @@ impl Board {
         let black_king_column: usize = INDEX_COLUMN[black_king_position];
         if red_king_column == black_king_column {
             let column_positions = &INDEX_COLUMN_POSITIONS[red_king_column];
-            for i in 0usize..column_positions.len() {
-                let position: usize = column_positions[i];
-                if let Some(_) = self.positions[position] {
+            let red_king_row: usize = INDEX_ROW[red_king_position];
+            let black_king_row: usize = INDEX_ROW[black_king_position];
+            for i in (black_king_row + 1usize)..red_king_row {
+                if self.positions[column_positions[i]].is_some() {
                     return true;
                 }
             }
