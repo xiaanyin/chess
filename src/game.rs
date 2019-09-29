@@ -257,22 +257,17 @@ impl Board {
     }
 
     pub fn search(&mut self) -> String {
-        //        let search_depth: usize = match self.pieces_count {
-        //            0..=4 => 6,
-        //            5..=6 => 5,
-        //            7..=16 => 4,
-        //            17..=28 => 3,
-        //            _ => 2,
-        //        };
-        let search_depth: usize = 2usize;
+        let search_depth: usize = match self.pieces_count {
+            0..=4 => 6,
+            5..=6 => 5,
+            7..=16 => 4,
+            17..=28 => 3,
+            _ => 2,
+        };
 
         let mut best_move: Option<MinMaxNode> = None;
         let mut best_value = i32::min_value();
-        let mut all_moves: Vec<MinMaxNode> = self.generate_all_moves(&Player::Black);
-
-        for node in &all_moves {
-            println!("piece [{}], from[{}], to[{}]", node.piece, node.from, node.to);
-        }
+        let mut all_moves: Vec<MinMaxNode> = self.generate_all_moves();
 
         while let Some(node) = all_moves.pop() {
             let position_to_backup: Option<char> = self.temporary_move(node.from, node.to);
@@ -309,7 +304,7 @@ impl Board {
             _ => {
                 let mut min: i32 = min;
                 let mut max: i32 = max;
-                let mut all_moves: Vec<MinMaxNode> = self.generate_all_moves(&turn);
+                let mut all_moves: Vec<MinMaxNode> = self.generate_all_moves();
                 while let Some(node) = all_moves.pop() {
                     let position_to_backup: Option<char> = self.temporary_move(node.from, node.to);
                     match turn {
@@ -433,54 +428,52 @@ impl Board {
     /// 所有棋子可能移动位置生成
     ///
     /// 生成棋盘上所有棋子可能移动的所有位置。
-    ///
-    /// * `turn` - 红色或者黑色，当前棋子的移动方。
-    fn generate_all_moves(&mut self, turn: &Player) -> Vec<MinMaxNode> {
+    fn generate_all_moves(&mut self) -> Vec<MinMaxNode> {
         let mut all_moves: Vec<MinMaxNode> = Vec::new();
         for i in 0..MAX_CELLS_SIZE {
             if let Some(p) = self.positions[i] {
                 match p {
                     RED_KING => {
-                        self.generate_king(&mut all_moves, &turn, RED_KING, i);
+                        self.generate_king(&mut all_moves, RED_KING, i);
                     }
                     RED_ADVISER => {
-                        self.generate_adviser(&mut all_moves, &turn, RED_ADVISER, i);
+                        self.generate_adviser(&mut all_moves, RED_ADVISER, i);
                     }
                     RED_BISHOP => {
-                        self.generate_bishop(&mut all_moves, &turn, RED_BISHOP, i);
+                        self.generate_bishop(&mut all_moves, RED_BISHOP, i);
                     }
                     RED_KNIGHT => {
-                        self.generate_knight(&mut all_moves, &turn, RED_KNIGHT, i);
+                        self.generate_knight(&mut all_moves, RED_KNIGHT, i);
                     }
                     RED_ROOK => {
-                        self.generate_rook(&mut all_moves, &turn, RED_ROOK, i);
+                        self.generate_rook(&mut all_moves, RED_ROOK, i);
                     }
                     RED_CANNON => {
-                        self.generate_cannon(&mut all_moves, &turn, RED_CANNON, i);
+                        self.generate_cannon(&mut all_moves, RED_CANNON, i);
                     }
                     RED_PAWN => {
-                        self.generate_pawn(&mut all_moves, &turn, RED_PAWN, i);
+                        self.generate_pawn(&mut all_moves, &Player::Red, RED_PAWN, i);
                     }
                     BLACK_KING => {
-                        self.generate_king(&mut all_moves, &turn, BLACK_KING, i);
+                        self.generate_king(&mut all_moves, BLACK_KING, i);
                     }
                     BLACK_ADVISER => {
-                        self.generate_adviser(&mut all_moves, &turn, BLACK_ADVISER, i);
+                        self.generate_adviser(&mut all_moves, BLACK_ADVISER, i);
                     }
                     BLACK_BISHOP => {
-                        self.generate_bishop(&mut all_moves, &turn, BLACK_BISHOP, i);
+                        self.generate_bishop(&mut all_moves, BLACK_BISHOP, i);
                     }
                     BLACK_KNIGHT => {
-                        self.generate_knight(&mut all_moves, &turn, BLACK_KNIGHT, i);
+                        self.generate_knight(&mut all_moves, BLACK_KNIGHT, i);
                     }
                     BLACK_ROOK => {
-                        self.generate_rook(&mut all_moves, &turn, BLACK_ROOK, i);
+                        self.generate_rook(&mut all_moves, BLACK_ROOK, i);
                     }
                     BLACK_CANNON => {
-                        self.generate_cannon(&mut all_moves, &turn, BLACK_CANNON, i);
+                        self.generate_cannon(&mut all_moves, BLACK_CANNON, i);
                     }
                     BLACK_PAWN => {
-                        self.generate_pawn(&mut all_moves, &turn, BLACK_PAWN, i);
+                        self.generate_pawn(&mut all_moves, &Player::Black, BLACK_PAWN, i);
                     }
                     _ => {}
                 }
@@ -513,15 +506,7 @@ impl Board {
         let column_positions: &[usize; HEIGHT] = &INDEX_COLUMN_POSITIONS[column_number];
 
         let mut piece_moves: Vec<usize> = Vec::new();
-//        [0, 9, 18, 27, 36, 45, 54, 63, 72, 81],
-//        [1, 10, 19, 28, 37, 46, 55, 64, 73, 82],
-//        [2, 11, 20, 29, 38, 47, 56, 65, 74, 83],
-//        [3, 12, 21, 30, 39, 48, 57, 66, 75, 84],
-//        [4, 13, 22, 31, 40, 49, 58, 67, 76, 85],
-//        [5, 14, 23, 32, 41, 50, 59, 68, 77, 86],
-//        [6, 15, 24, 33, 42, 51, 60, 69, 78, 87],
-//        [7, 16, 25, 34, 43, 52, 61, 70, 79, 88],
-//        [8, 17, 26, 35, 44, 53, 62, 71, 80, 89],
+
         match turn {
             Player::Red => {
                 if row_number > 0usize {
@@ -551,7 +536,7 @@ impl Board {
             }
         }
 
-        self.generate_general_moves(all_moves, &turn, piece_from, position_from, &piece_moves);
+        self.generate_general_moves(all_moves, piece_from, position_from, &piece_moves);
     }
 
     /// 炮可能移动位置生成
@@ -559,13 +544,11 @@ impl Board {
     /// 生成炮可能移动的所有位置。
     ///
     /// * `all_moves` - 所有可移动棋子集合。
-    /// * `turn` - 红色或者黑色，当前棋子的移动方。
     /// * `piece_from` - 炮棋子。
     /// * `position_from` - 炮当前位置。
     fn generate_cannon(
         &mut self,
         all_moves: &mut Vec<MinMaxNode>,
-        turn: &Player,
         piece_from: char,
         position_from: usize,
     ) {
@@ -573,7 +556,7 @@ impl Board {
         let mut piece_moves: Vec<usize> =
             self.generate_piece_move_by_four_direction(position_from, skip);
 
-        self.generate_general_moves(all_moves, &turn, piece_from, position_from, &piece_moves);
+        self.generate_general_moves(all_moves, piece_from, position_from, &piece_moves);
     }
 
     /// 车（車）可能移动位置生成
@@ -581,13 +564,11 @@ impl Board {
     /// 生成车（車）可能移动的所有位置。
     ///
     /// * `all_moves` - 所有可移动棋子集合。
-    /// * `turn` - 红色或者黑色，当前棋子的移动方。
     /// * `piece_from` - 车（車）棋子。
     /// * `position_from` - 车（車）当前位置。
     fn generate_rook(
         &mut self,
         all_moves: &mut Vec<MinMaxNode>,
-        turn: &Player,
         piece_from: char,
         position_from: usize,
     ) {
@@ -595,7 +576,7 @@ impl Board {
         let piece_moves: Vec<usize> =
             self.generate_piece_move_by_four_direction(position_from, skip);
 
-        self.generate_general_moves(all_moves, &turn, piece_from, position_from, &piece_moves);
+        self.generate_general_moves(all_moves, piece_from, position_from, &piece_moves);
     }
 
     /// 直线移动棋子可能移动位置生成（车/炮）
@@ -707,6 +688,7 @@ impl Board {
     ) {
         let mut start_copy: usize = start;
         let mut skip_copy: usize = skip;
+        let mut record_mode: bool = true;
         loop {
             let position: usize = match process {
                 PROCESS_ROW => row_positions[start_copy],
@@ -719,9 +701,12 @@ impl Board {
                     break;
                 } else {
                     skip_copy -= 1usize;
+                    record_mode = false;
                 }
             } else {
-                piece_moves.push(position);
+                if record_mode {
+                    piece_moves.push(position);
+                }
             }
 
             if start_copy == end {
@@ -740,13 +725,11 @@ impl Board {
     /// 生成马（馬）可能移动的所有位置。
     ///
     /// * `all_moves` - 所有可移动棋子集合。
-    /// * `turn` - 红色或者黑色，当前棋子的移动方。
     /// * `piece_from` - 马（馬）棋子。
     /// * `position_from` - 马（馬）当前位置。
     fn generate_knight(
         &mut self,
         all_moves: &mut Vec<MinMaxNode>,
-        turn: &Player,
         piece_from: char,
         position_from: usize,
     ) {
@@ -797,7 +780,7 @@ impl Board {
             }
         }
 
-        self.generate_general_moves(all_moves, &turn, piece_from, position_from, &piece_moves);
+        self.generate_general_moves(all_moves, piece_from, position_from, &piece_moves);
     }
 
     /// 相（象）可能移动位置生成
@@ -805,19 +788,17 @@ impl Board {
     /// 生成相（象）可能移动的所有位置。
     ///
     /// * `all_moves` - 所有可移动棋子集合。
-    /// * `turn` - 红色或者黑色，当前棋子的移动方。
     /// * `piece_from` - 相（象）棋子。
     /// * `position_from` - 相（象）当前位置。
     fn generate_bishop(
         &mut self,
         all_moves: &mut Vec<MinMaxNode>,
-        turn: &Player,
         piece_from: char,
         position_from: usize,
     ) {
         let piece_moves = MOVES_BISHOP.get(&position_from).unwrap();
 
-        self.generate_general_moves(all_moves, &turn, piece_from, position_from, &piece_moves);
+        self.generate_general_moves(all_moves, piece_from, position_from, &piece_moves);
     }
 
     /// 士（仕）可能移动位置生成
@@ -825,19 +806,17 @@ impl Board {
     /// 生成士（仕）可能移动的所有位置。
     ///
     /// * `all_moves` - 所有可移动棋子集合。
-    /// * `turn` - 红色或者黑色，当前棋子的移动方。
     /// * `piece_from` - 士（仕）棋子。
     /// * `position_from` - 士（仕）当前位置。
     fn generate_adviser(
         &mut self,
         all_moves: &mut Vec<MinMaxNode>,
-        turn: &Player,
         piece_from: char,
         position_from: usize,
     ) {
         let piece_moves = MOVES_ADVISER.get(&position_from).unwrap();
 
-        self.generate_general_moves(all_moves, &turn, piece_from, position_from, &piece_moves);
+        self.generate_general_moves(all_moves, piece_from, position_from, &piece_moves);
     }
 
     /// 帅（将）可能移动位置生成
@@ -845,18 +824,16 @@ impl Board {
     /// 生成帅（将）可能移动的所有位置。
     ///
     /// * `all_moves` - 所有可移动棋子集合。
-    /// * `turn` - 红色或者黑色，当前棋子的移动方。
     /// * `piece_from` - 帅（将）棋子。
     /// * `position_from` - 帅（将）当前位置。
     fn generate_king(
         &mut self,
         all_moves: &mut Vec<MinMaxNode>,
-        turn: &Player,
         piece_from: char,
         position_from: usize,
     ) {
         let piece_moves = MOVES_KING.get(&position_from).unwrap();
-        self.generate_general_moves(all_moves, &turn, piece_from, position_from, &piece_moves);
+        self.generate_general_moves(all_moves, piece_from, position_from, &piece_moves);
     }
 
     /// 固定坐标移动棋子可能移动位置生成
@@ -864,14 +841,12 @@ impl Board {
     /// 生成固定坐标移动棋子可能移动的所有位置。
     ///
     /// * `all_moves` - 所有可移动棋子集合。
-    /// * `turn` - 红色或者黑色，当前棋子的移动方。
     /// * `piece_from` - 棋子。
     /// * `position_from` - 棋子当前位置。
     /// * `piece_moves` - 棋子所有移动位置。
     fn generate_general_moves(
         &mut self,
         all_moves: &mut Vec<MinMaxNode>,
-        turn: &Player,
         piece_from: char,
         position_from: usize,
         piece_moves: &Vec<usize>,
