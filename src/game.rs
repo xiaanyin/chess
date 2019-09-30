@@ -1,4 +1,4 @@
-use game::Player::Black;
+use game::Side::Black;
 use serde;
 use serde_derive;
 use std::cmp;
@@ -197,7 +197,7 @@ lazy_static! {
 
 // By default, player is Red, and computer is Black.
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
-enum Player {
+enum Side {
     Red,
     Black,
 }
@@ -267,16 +267,11 @@ impl Board {
 
         let mut best_move: Option<MinMaxNode> = None;
         let mut best_value = i32::min_value();
-        let mut all_moves: Vec<MinMaxNode> = self.generate_all_moves();
+        let mut all_moves: Vec<MinMaxNode> = self.generate_all_moves(&Side::Black);
 
         while let Some(node) = all_moves.pop() {
             let position_to_backup: Option<char> = self.temporary_move(node.from, node.to);
-            let value = self.min_max(
-                search_depth,
-                i32::max_value(),
-                i32::min_value(),
-                &Player::Red,
-            );
+            let value = self.min_max(search_depth, i32::max_value(), i32::min_value(), &Side::Red);
             if best_move.is_none() || value >= best_value {
                 best_move = Some(node);
                 best_value = value;
@@ -295,48 +290,52 @@ impl Board {
         ret
     }
 
-    fn min_max(&mut self, depth: usize, min: i32, max: i32, turn: &Player) -> i32 {
+    fn min_max(&mut self, depth: usize, min: i32, max: i32, side: &Side) -> i32 {
         match depth {
             0 => {
-                // Or any of kings has been killed?
-                self.evaluate(&turn)
+                // Or any one of kings has been killed?
+                self.evaluate(&side)
             }
             _ => {
-                let mut min: i32 = min;
-                let mut max: i32 = max;
-                let mut all_moves: Vec<MinMaxNode> = self.generate_all_moves();
+                let mut min_copy: i32 = min;
+                let mut max_copy: i32 = max;
+                let mut all_moves: Vec<MinMaxNode> = self.generate_all_moves(&side);
                 while let Some(node) = all_moves.pop() {
                     let position_to_backup: Option<char> = self.temporary_move(node.from, node.to);
-                    match turn {
-                        Player::Red => {
-                            max = cmp::max(max, self.min_max(depth - 1, min, max, &Player::Black));
+                    match side {
+                        Side::Red => {
+                            min_copy = cmp::min(
+                                min_copy,
+                                self.min_max(depth - 1, min_copy, max_copy, &Side::Black),
+                            );
                         }
-                        Player::Black => {
-                            min = cmp::min(min, self.min_max(depth - 1, min, max, &Player::Red));
+                        Side::Black => {
+                            max_copy = cmp::max(
+                                max_copy,
+                                self.min_max(depth - 1, min_copy, max_copy, &Side::Red),
+                            );
                         }
                     }
                     self.recovery(node.from, node.to, position_to_backup);
-                    // TODO
-                    //    if min > max {
-                    //        break;
-                    //    }
+                    if min > max {
+                        break;
+                    }
                 }
-                match turn {
-                    Player::Red => min,
-                    Player::Black => max,
+                match side {
+                    Side::Red => min_copy,
+                    Side::Black => max_copy,
                 }
             }
         }
     }
 
-    fn evaluate(&self, turn: &Player) -> i32 {
+    fn evaluate(&self, side: &Side) -> i32 {
         // By default, only calculate black's value
         let mut sum_red = 0i32;
         let mut sum_black = 0i32;
         for i in 0..MAX_CELLS_SIZE {
-            match self.positions[i] {
-                None => {}
-                Some(p) => match p {
+            if let Some(p) = self.positions[i] {
+                match p {
                     RED_KING => {
                         sum_red += EVALUATE_BASIC[0];
                         sum_red += EVALUATE_KING[i];
@@ -394,12 +393,12 @@ impl Board {
                         sum_black += EVALUATE_PAWN[89 - i];
                     }
                     _ => {}
-                },
+                }
             }
         }
-        match turn {
-            Player::Red => sum_red - sum_black,
-            Player::Black => sum_black - sum_red,
+        match side {
+            Side::Red => sum_red - sum_black,
+            Side::Black => sum_black - sum_red,
         }
     }
 
@@ -407,75 +406,44 @@ impl Board {
         let piece = self.positions[to];
         self.positions[to] = self.positions[from];
         self.positions[from] = None;
-        match piece {
-            None => {}
-            _ => self.pieces_count -= 1,
-        }
         piece
     }
 
     fn recovery(&mut self, from: usize, to: usize, position_to_backup: Option<char>) {
         self.positions[from] = self.positions[to];
-        match position_to_backup {
-            None => (),
-            _ => {
-                self.positions[to] = position_to_backup;
-                self.pieces_count += 1;
-            }
-        };
+        self.positions[to] = position_to_backup;
     }
 
     /// 所有棋子可能移动位置生成
     ///
     /// 生成棋盘上所有棋子可能移动的所有位置。
-    fn generate_all_moves(&mut self) -> Vec<MinMaxNode> {
+    fn generate_all_moves(&mut self, side: &Side) -> Vec<MinMaxNode> {
         let mut all_moves: Vec<MinMaxNode> = Vec::new();
         for i in 0..MAX_CELLS_SIZE {
             if let Some(p) = self.positions[i] {
-                match p {
-                    RED_KING => {
-                        self.generate_king(&mut all_moves, RED_KING, i);
-                    }
-                    RED_ADVISER => {
-                        self.generate_adviser(&mut all_moves, RED_ADVISER, i);
-                    }
-                    RED_BISHOP => {
-                        self.generate_bishop(&mut all_moves, RED_BISHOP, i);
-                    }
-                    RED_KNIGHT => {
-                        self.generate_knight(&mut all_moves, RED_KNIGHT, i);
-                    }
-                    RED_ROOK => {
-                        self.generate_rook(&mut all_moves, RED_ROOK, i);
-                    }
-                    RED_CANNON => {
-                        self.generate_cannon(&mut all_moves, RED_CANNON, i);
-                    }
-                    RED_PAWN => {
-                        self.generate_pawn(&mut all_moves, &Player::Red, RED_PAWN, i);
-                    }
-                    BLACK_KING => {
-                        self.generate_king(&mut all_moves, BLACK_KING, i);
-                    }
-                    BLACK_ADVISER => {
-                        self.generate_adviser(&mut all_moves, BLACK_ADVISER, i);
-                    }
-                    BLACK_BISHOP => {
-                        self.generate_bishop(&mut all_moves, BLACK_BISHOP, i);
-                    }
-                    BLACK_KNIGHT => {
-                        self.generate_knight(&mut all_moves, BLACK_KNIGHT, i);
-                    }
-                    BLACK_ROOK => {
-                        self.generate_rook(&mut all_moves, BLACK_ROOK, i);
-                    }
-                    BLACK_CANNON => {
-                        self.generate_cannon(&mut all_moves, BLACK_CANNON, i);
-                    }
-                    BLACK_PAWN => {
-                        self.generate_pawn(&mut all_moves, &Player::Black, BLACK_PAWN, i);
-                    }
-                    _ => {}
+                match side {
+                    Side::Black => match p {
+                        BLACK_KING => self.generate_king(&mut all_moves, BLACK_KING, i),
+                        BLACK_ADVISER => self.generate_adviser(&mut all_moves, BLACK_ADVISER, i),
+                        BLACK_BISHOP => self.generate_bishop(&mut all_moves, BLACK_BISHOP, i),
+                        BLACK_KNIGHT => self.generate_knight(&mut all_moves, BLACK_KNIGHT, i),
+                        BLACK_ROOK => self.generate_rook(&mut all_moves, BLACK_ROOK, i),
+                        BLACK_CANNON => self.generate_cannon(&mut all_moves, BLACK_CANNON, i),
+                        BLACK_PAWN => {
+                            self.generate_pawn(&mut all_moves, &Side::Black, BLACK_PAWN, i)
+                        }
+                        _ => {}
+                    },
+                    Side::Red => match p {
+                        RED_KING => self.generate_king(&mut all_moves, RED_KING, i),
+                        RED_ADVISER => self.generate_adviser(&mut all_moves, RED_ADVISER, i),
+                        RED_BISHOP => self.generate_bishop(&mut all_moves, RED_BISHOP, i),
+                        RED_KNIGHT => self.generate_knight(&mut all_moves, RED_KNIGHT, i),
+                        RED_ROOK => self.generate_rook(&mut all_moves, RED_ROOK, i),
+                        RED_CANNON => self.generate_cannon(&mut all_moves, RED_CANNON, i),
+                        RED_PAWN => self.generate_pawn(&mut all_moves, &Side::Red, RED_PAWN, i),
+                        _ => {}
+                    },
                 }
             }
         }
@@ -487,13 +455,13 @@ impl Board {
     /// 生成兵（卒）可能移动的所有位置。
     ///
     /// * `all_moves` - 所有可移动棋子集合。
-    /// * `turn` - 红色或者黑色，当前棋子的移动方。
+    /// * `side` - 红色或者黑色，当前棋子的移动方。
     /// * `piece_from` - 兵（卒）棋子。
     /// * `position_from` - 兵（卒）当前位置。
     fn generate_pawn(
         &mut self,
         all_moves: &mut Vec<MinMaxNode>,
-        turn: &Player,
+        side: &Side,
         piece_from: char,
         position_from: usize,
     ) {
@@ -507,8 +475,8 @@ impl Board {
 
         let mut piece_moves: Vec<usize> = Vec::new();
 
-        match turn {
-            Player::Red => {
+        match side {
+            Side::Red => {
                 if row_number > 0usize {
                     piece_moves.push(column_positions[row_number - 1usize]);
                 }
@@ -521,7 +489,7 @@ impl Board {
                     }
                 }
             }
-            Player::Black => {
+            Side::Black => {
                 if row_number < 9usize {
                     piece_moves.push(column_positions[row_number + 1usize]);
                 }
@@ -879,11 +847,11 @@ impl Board {
         black_king_position: Option<usize>,
     ) -> bool {
         let red_king_position: usize = match red_king_position {
-            None => self.get_king_position(&Player::Red),
+            None => self.get_king_position(&Side::Red),
             Some(v) => v,
         };
         let black_king_position: usize = match black_king_position {
-            None => self.get_king_position(&Player::Black),
+            None => self.get_king_position(&Side::Black),
             Some(v) => v,
         };
         let red_king_column: usize = INDEX_COLUMN[red_king_position];
@@ -907,22 +875,22 @@ impl Board {
     ///
     /// 取得将军位置，并更新将军位置缓存。
     ///
-    /// * `turn` - 红色或者黑色，当前棋子的移动方。
-    fn get_king_position(&mut self, turn: &Player) -> usize {
-        let cached_king_position: usize = match turn {
-            Player::Red => self.cache_red_king,
-            Player::Black => self.cache_black_king,
+    /// * `side` - 红色或者黑色，当前棋子的移动方。
+    fn get_king_position(&mut self, side: &Side) -> usize {
+        let cached_king_position: usize = match side {
+            Side::Red => self.cache_red_king,
+            Side::Black => self.cache_black_king,
         };
-        let target_king: char = match turn {
-            Player::Red => RED_KING,
-            Player::Black => BLACK_KING,
+        let target_king: char = match side {
+            Side::Red => RED_KING,
+            Side::Black => BLACK_KING,
         };
         let king: Option<char> = self.positions[cached_king_position];
         if king.is_some() && king.unwrap() == target_king {
             cached_king_position
         } else {
-            match turn {
-                Player::Red => {
+            match side {
+                Side::Red => {
                     for position in &RED_KING_POSITIONS {
                         if let Some(piece) = self.positions[*position] {
                             if piece == RED_KING {
@@ -933,7 +901,7 @@ impl Board {
                     }
                     self.cache_red_king
                 }
-                Player::Black => {
+                Side::Black => {
                     for position in &BLACK_KING_POSITIONS {
                         if let Some(piece) = self.positions[*position] {
                             if piece == BLACK_KING {
@@ -976,4 +944,37 @@ impl Board {
             self.positions[i] = None;
         }
     }
+
+// TODO for test print board's all pieces
+//    fn print_fen(&self, mark: &str) {
+//        let mut fen = String::new();
+//        let mut space = 0usize;
+//        for i in 0usize..MAX_CELLS_SIZE {
+//            match self.positions[i] {
+//                None => {
+//                    space += 1;
+//                    if i == 89usize {
+//                        fen.push_str(&space.to_string());
+//                    }
+//                }
+//                Some(p) => {
+//                    if space > 0usize {
+//                        fen.push_str(&space.to_string());
+//                        space = 0usize;
+//                    }
+//                    fen.push_str(&p.to_string());
+//                }
+//            }
+//            if i > 0usize && i % WIDTH == 8usize {
+//                if space > 0usize {
+//                    fen.push_str(&space.to_string());
+//                    space = 0usize;
+//                }
+//                if i != 89usize {
+//                    fen.push_str("/");
+//                }
+//            }
+//        }
+//        println!("{}---{}", mark, fen)
+//    }
 }
