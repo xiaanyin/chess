@@ -5,6 +5,9 @@ use serde_yaml;
 use std::fs::File;
 use std::io::prelude::*;
 
+use game::*;
+use std::borrow::Cow;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     pub server_ip: String,
@@ -12,7 +15,8 @@ pub struct Config {
 }
 
 pub struct Server {
-    config: Config
+    config: Config,
+    board: Board,
 }
 
 impl Server {
@@ -23,11 +27,12 @@ impl Server {
                 let mut contents = String::new();
                 file.read_to_string(&mut contents).expect("Unable to read file");
                 serde_yaml::from_str(&contents).unwrap()
-            }
+            },
+            board: Board::new(),
         }
     }
 
-    pub fn startup(&self) {
+    pub fn startup(&mut self) {
         let ip = format!("{}:{}", self.config.server_ip, self.config.server_port);
         let listener = TcpListener::bind(ip).unwrap();
         println!("listening started, ready to accept");
@@ -38,15 +43,18 @@ impl Server {
         }
     }
 
-    fn handle_connection(&self, mut stream: TcpStream) {
+    fn handle_connection(&mut self, mut stream: TcpStream) {
         let mut buffer = [0; 100];
         stream.read(&mut buffer).unwrap();
-        let message = String::from_utf8_lossy(&buffer[..]);
-        let chess_board = message.trim_end_matches('\u{0}');
-        println!("[{}]", chess_board);
+        let message: Cow<str> = String::from_utf8_lossy(&buffer[..]);
+        let chess_board: &str = message.trim_end_matches('\u{0}');
 
-        // TODO
-        let response = "ABCD";
+        println!("input=[{}]", chess_board);
+        self.board.init_board(chess_board);
+
+        let response: String = self.board.search();
+        println!("result=[{}]", response);
+
         stream.write(response.as_bytes()).unwrap();
         stream.flush().unwrap();
     }

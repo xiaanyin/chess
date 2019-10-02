@@ -12,11 +12,9 @@ extern crate lazy_static;
 mod game;
 mod server;
 
-
 fn main() {
-    let server = server::Server::new("resources/server_init.yaml");
+    let mut server = server::Server::new("resources/server_init.yaml");
     server.startup();
-
 }
 
 
