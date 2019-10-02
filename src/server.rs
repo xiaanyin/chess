@@ -15,7 +15,8 @@ pub struct Config {
 }
 
 pub struct Server {
-    config: Config
+    config: Config,
+    board: Board,
 }
 
 impl Server {
@@ -26,11 +27,12 @@ impl Server {
                 let mut contents = String::new();
                 file.read_to_string(&mut contents).expect("Unable to read file");
                 serde_yaml::from_str(&contents).unwrap()
-            }
+            },
+            board: Board::new(),
         }
     }
 
-    pub fn startup(&self) {
+    pub fn startup(&mut self) {
         let ip = format!("{}:{}", self.config.server_ip, self.config.server_port);
         let listener = TcpListener::bind(ip).unwrap();
         println!("listening started, ready to accept");
@@ -41,19 +43,17 @@ impl Server {
         }
     }
 
-    fn handle_connection(&self, mut stream: TcpStream) {
+    fn handle_connection(&mut self, mut stream: TcpStream) {
         let mut buffer = [0; 100];
         stream.read(&mut buffer).unwrap();
         let message: Cow<str> = String::from_utf8_lossy(&buffer[..]);
         let chess_board: &str = message.trim_end_matches('\u{0}');
 
-        let mut board: Board = Board::new();
+        println!("input=[{}]", chess_board);
+        self.board.init_board(chess_board);
 
-        println!("[{}]", chess_board);
-        board.init_board(chess_board);
-
-        let response: String = board.search();
-        println!("[{}]", response);
+        let response: String = self.board.search();
+        println!("result=[{}]", response);
 
         stream.write(response.as_bytes()).unwrap();
         stream.flush().unwrap();
