@@ -255,6 +255,10 @@ pub struct Board {
 }
 
 impl Board {
+
+    /// 初始化棋盘
+    ///
+    /// 新建一个棋盘对象。
     pub fn new() -> Board {
         Board {
             pieces_count: 0usize,
@@ -264,6 +268,12 @@ impl Board {
         }
     }
 
+
+    /// 初始化棋盘
+    ///
+    /// 根据FEN初始化棋盘。
+    ///
+    /// * `fen` - FEN字符串。
     pub fn init_board(&mut self, fen: &str) {
         // rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR
         self.clear();
@@ -284,6 +294,10 @@ impl Board {
         }
     }
 
+    /// 检索
+    ///
+    /// 检索下一步，返回移动坐标,
+    /// 返回值为字符串类型，长度为4，分别代表【开始.x, 开始.y, 结束.x, 结束.y】，坐标值从0开始
     pub fn search(&mut self) -> String {
         let search_depth: usize = match self.pieces_count {
             0..=4 => 6,
@@ -296,7 +310,9 @@ impl Board {
         let mut best_move: Option<MinMaxNode> = None;
         let mut best_value = i32::min_value();
         let mut all_moves: Vec<MinMaxNode> = self.generate_all_moves(&Side::Black);
-
+        if DEBUG_MODE {
+            self.test_print_all_moves("all_moves", &all_moves);
+        }
         while let Some(node) = all_moves.pop() {
             let position_to_backup: Option<char> = self.temporary_move(node.from, node.to);
             let value: i32 = self.min_max(search_depth, i32::max_value(), i32::min_value(), &Side::Red);
@@ -306,22 +322,35 @@ impl Board {
             }
             self.recovery(node.from, node.to, position_to_backup);
             if DEBUG_MODE {
-                self.test_print_node("", &node, value)
+                self.test_print_node("node", &node, value)
             }
         }
-        // println!("from=[{}],to=[{}]", best_move.unwrap().from, best_move.unwrap().to);
         self.translate(best_move.unwrap().from, best_move.unwrap().to)
     }
 
+    /// 转换
+    ///
+    /// 将移动位置转换成4位字符串，分别代表【开始.x, 开始.y, 结束.x, 结束.y】，坐标值从0开始。
+    ///
+    /// * `from` - 开始位置。
+    /// * `to` - 移动对象位置。
     fn translate(&self, from: usize, to: usize) -> String {
-        let mut ret: String = String::new();
-        ret.push_str(&INDEX_ROW[from].to_string());
-        ret.push_str(&INDEX_COLUMN[from].to_string());
-        ret.push_str(&INDEX_ROW[to].to_string());
-        ret.push_str(&INDEX_COLUMN[to].to_string());
-        ret
+        let mut position: String = String::new();
+        position.push_str(&INDEX_ROW[from].to_string());
+        position.push_str(&INDEX_COLUMN[from].to_string());
+        position.push_str(&INDEX_ROW[to].to_string());
+        position.push_str(&INDEX_COLUMN[to].to_string());
+        position
     }
 
+    /// 极大极小值计算
+    ///
+    /// 返回计算后的极大极小值。
+    ///
+    /// * `depth` - 深度。
+    /// * `min` - 极小值。
+    /// * `max` - 极大值。
+    /// * `side` - 红色或者黑色，当前棋子的移动方。
     fn min_max(&mut self, depth: usize, min: i32, max: i32, side: &Side) -> i32 {
         match depth {
             0 => {
@@ -361,6 +390,9 @@ impl Board {
         }
     }
 
+    /// 棋子评价
+    ///
+    /// 对棋盘上所有棋子评价。
     fn evaluate(&self) -> i32 {
         // By default, only calculate black's value
         let mut sum_red = 0i32;
@@ -431,6 +463,14 @@ impl Board {
         sum_black - sum_red
     }
 
+    /// 移动棋子
+    ///
+    /// 临时移动棋子。
+    ///
+    /// * `from` - 棋子移动开始位置。
+    /// * `to` - 棋子移动对象位置。
+    ///
+    /// 返回棋子移动对象位置的棋子备份
     fn temporary_move(&mut self, from: usize, to: usize) -> Option<char> {
         let piece = self.positions[to];
         self.positions[to] = self.positions[from];
