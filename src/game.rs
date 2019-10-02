@@ -4,6 +4,9 @@ use serde_derive;
 use std::cmp;
 use std::collections::{HashMap, HashSet};
 
+// 是否打印计算过程
+const DEBUG_MODE: bool = false;
+
 /**************************************************************************************************/
 /*******************************     BASIC DEFINITION     *****************************************/
 /**************************************************************************************************/
@@ -106,52 +109,52 @@ const EVALUATE_BASIC: [i32; 7] = [1000000, 110, 110, 300, 600, 300, 70];
 //];
 
 const EVALUATE_KNIGHT: [i32; MAX_CELLS_SIZE] = [
-    32, 64, 128, 96, 32, 96, 128, 64, 32,
-    32, 80, 224, 128, 64, 128, 224, 80, 32,
-    96, 112, 128, 160, 144, 160, 128, 112, 96,
-    64, 192, 144, 192, 160, 192, 144, 192, 64,
-    48, 128, 112, 144, 128, 144, 112, 128, 48,
-    32, 96, 128, 112, 96, 112, 128, 96, 32,
-    16, 48, 64, 48, 80, 48, 64, 48, 16,
-    32, 16, 64, 64, 32, 64, 64, 16, 32,
-    0, 16, 32, 32, -16, 32, 32, 16, 0,
-    0, -32, 0, 0, 0, 0, 0, -32, 0
+    4, 8, 16, 12, 4, 12, 16, 8, 4,
+    4, 10, 28, 16, 8, 16, 28, 10, 4,
+    12, 14, 16, 20, 18, 20, 16, 14, 12,
+    8, 24, 18, 24, 20, 24, 18, 24, 8,
+    6, 16, 14, 18, 16, 18, 14, 16, 6,
+    4, 12, 16, 14, 12, 14, 16, 12, 4,
+    2, 6, 8, 6, 10, 6, 8, 6, 2,
+    4, 2, 8, 8, 4, 8, 8, 2, 4,
+    0, 2, 4, 4, -2, 4, 4, 2, 0,
+    0, -4, 0, 0, 0, 0, 0, -4, 0
 ];
 
 const EVALUATE_ROOK: [i32; MAX_CELLS_SIZE] = [
-    112, 112, 96, 144, 128, 144, 96, 112, 112,
-    128, 160, 144, 192, 208, 192, 144, 160, 128,
-    96, 96, 96, 144, 144, 144, 96, 96, 96,
-    96, 144, 128, 176, 176, 176, 128, 144, 96,
-    96, 112, 96, 144, 144, 144, 96, 112, 96,
-    96, 128, 112, 160, 160, 160, 112, 128, 96,
-    48, 80, 64, 112, 112, 112, 64, 80, 48,
-    32, 64, 48, 112, 96, 112, 48, 64, 32,
-    64, 32, 64, 128, 64, 128, 64, 32, 64,
-    -16, 80, 48, 112, 96, 112, 48, 80, -16
+    14, 14, 12, 18, 16, 18, 12, 14, 14,
+    16, 20, 18, 24, 26, 24, 18, 20, 16,
+    12, 12, 12, 18, 18, 18, 12, 12, 12,
+    12, 18, 16, 22, 22, 22, 16, 18, 12,
+    12, 14, 12, 18, 18, 18, 12, 14, 12,
+    12, 16, 14, 20, 20, 20, 14, 16, 12,
+    6, 10, 8, 14, 14, 14, 8, 10, 6,
+    4, 8, 6, 14, 12, 14, 6, 8, 4,
+    8, 4, 8, 16, 8, 16, 8, 4, 8,
+    -2, 10, 6, 14, 12, 14, 6, 10, -2
 ];
 
 const EVALUATE_CANNON: [i32; MAX_CELLS_SIZE] = [
-    48, 32, 0, -80, -96, -80, 0, 32, 48,
-    16, 16, 0, -32, -112, -32, 0, 16, 16,
-    16, 16, 0, -80, -64, -80, 0, 16, 16,
-    0, 0, -16, 32, 80, 32, -16, 0, 0,
-    0, 0, 0, 16, 64, 16, 0, 0, 0,
-    -16, 0, 32, 16, 48, 16, 32, 0, -16,
-    0, 0, 0, 16, 32, 16, 0, 0, 0,
-    32, 0, 64, 48, 80, 48, 64, 0, 32,
-    0, 16, 32, 48, 48, 48, 32, 16, 0,
-    0, 0, 16, 48, 48, 48, 16, 0, 0
+    6, 4, 0, -10, -12, -10, 0, 4, 6,
+    2, 2, 0, -4, -14, -4, 0, 2, 2,
+    2, 2, 0, -10, -8, -10, 0, 2, 2,
+    0, 0, -2, 4, 10, 4, -2, 0, 0,
+    0, 0, 0, 2, 8, 2, 0, 0, 0,
+    -2, 0, 4, 2, 6, 2, 4, 0, -2,
+    0, 0, 0, 2, 4, 2, 0, 0, 0,
+    4, 0, 8, 6, 10, 6, 8, 0, 4,
+    0, 2, 4, 6, 6, 6, 4, 2, 0,
+    0, 0, 2, 6, 6, 6, 2, 0, 0
 ];
 
 const EVALUATE_PAWN: [i32; MAX_CELLS_SIZE] = [
-    0, 24, 48, 72, 96, 72, 48, 24, 0,
-    144, 288, 448, 640, 960, 640, 448, 288, 144,
-    112, 208, 336, 480, 640, 480, 336, 208, 112,
-    80, 160, 240, 272, 320, 272, 240, 160, 80,
-    48, 96, 144, 144, 160, 144, 144, 96, 48,
-    16, 0, 64, 0, 64, 0, 64, 0, 16,
-    0, 0, -16, 0, 32, 0, -16, 0, 0,
+    0, 3, 6, 9, 12, 9, 6, 3, 0,
+    18, 36, 56, 80, 120, 80, 56, 36, 18,
+    14, 26, 42, 60, 80, 60, 42, 26, 14,
+    10, 20, 30, 34, 40, 34, 30, 20, 10,
+    6, 12, 18, 18, 20, 18, 18, 12, 6,
+    2, 0, 8, 0, 8, 0, 8, 0, 2,
+    0, 0, -2, 0, 4, 0, -2, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0
@@ -296,13 +299,17 @@ impl Board {
 
         while let Some(node) = all_moves.pop() {
             let position_to_backup: Option<char> = self.temporary_move(node.from, node.to);
-            let value = self.min_max(search_depth, i32::max_value(), i32::min_value(), &Side::Red);
+            let value: i32 = self.min_max(search_depth, i32::max_value(), i32::min_value(), &Side::Red);
             if best_move.is_none() || value >= best_value {
                 best_move = Some(node);
                 best_value = value;
             }
             self.recovery(node.from, node.to, position_to_backup);
+            if DEBUG_MODE {
+                self.test_print_node("", &node, value)
+            }
         }
+        // println!("from=[{}],to=[{}]", best_move.unwrap().from, best_move.unwrap().to);
         self.translate(best_move.unwrap().from, best_move.unwrap().to)
     }
 
@@ -319,7 +326,7 @@ impl Board {
         match depth {
             0 => {
                 // Or any one of kings has been killed?
-                self.evaluate(&side)
+                self.evaluate()
             }
             _ => {
                 let mut min_copy: i32 = min;
@@ -342,7 +349,7 @@ impl Board {
                         }
                     }
                     self.recovery(node.from, node.to, position_to_backup);
-                    if min > max {
+                    if min <= max {
                         break;
                     }
                 }
@@ -354,7 +361,7 @@ impl Board {
         }
     }
 
-    fn evaluate(&self, side: &Side) -> i32 {
+    fn evaluate(&self) -> i32 {
         // By default, only calculate black's value
         let mut sum_red = 0i32;
         let mut sum_black = 0i32;
@@ -375,19 +382,19 @@ impl Board {
                     }
                     RED_KNIGHT => {
                         sum_red += EVALUATE_BASIC[3];
-                        sum_red += EVALUATE_KNIGHT[i];
+                        sum_red += EVALUATE_KNIGHT[i] * 8;
                     }
                     RED_ROOK => {
                         sum_red += EVALUATE_BASIC[4];
-                        sum_red += EVALUATE_ROOK[i];
+                        sum_red += EVALUATE_ROOK[i] * 8;
                     }
                     RED_CANNON => {
                         sum_red += EVALUATE_BASIC[5];
-                        sum_red += EVALUATE_CANNON[i];
+                        sum_red += EVALUATE_CANNON[i] * 8;
                     }
                     RED_PAWN => {
                         sum_red += EVALUATE_BASIC[6];
-                        sum_red += EVALUATE_PAWN[i];
+                        sum_red += EVALUATE_PAWN[i] * 8;
                     }
                     BLACK_KING => {
                         sum_black += EVALUATE_BASIC[0];
@@ -403,40 +410,43 @@ impl Board {
                     }
                     BLACK_KNIGHT => {
                         sum_black += EVALUATE_BASIC[3];
-                        sum_black += EVALUATE_KNIGHT[89 - i];
+                        sum_black += EVALUATE_KNIGHT[89 - i] * 8;
                     }
                     BLACK_ROOK => {
                         sum_black += EVALUATE_BASIC[4];
-                        sum_black += EVALUATE_ROOK[89 - i];
+                        sum_black += EVALUATE_ROOK[89 - i] * 8;
                     }
                     BLACK_CANNON => {
                         sum_black += EVALUATE_BASIC[5];
-                        sum_black += EVALUATE_CANNON[89 - i];
+                        sum_black += EVALUATE_CANNON[89 - i] * 8;
                     }
                     BLACK_PAWN => {
                         sum_black += EVALUATE_BASIC[6];
-                        sum_black += EVALUATE_PAWN[89 - i];
+                        sum_black += EVALUATE_PAWN[89 - i] * 8;
                     }
                     _ => {}
                 }
             }
         }
-        match side {
-            Side::Red => sum_red - sum_black,
-            Side::Black => sum_black - sum_red,
-        }
+        sum_black - sum_red
     }
 
     fn temporary_move(&mut self, from: usize, to: usize) -> Option<char> {
         let piece = self.positions[to];
         self.positions[to] = self.positions[from];
         self.positions[from] = None;
+        if piece.is_some() {
+            self.pieces_count -= 1;
+        }
         piece
     }
 
     fn recovery(&mut self, from: usize, to: usize, position_to_backup: Option<char>) {
         self.positions[from] = self.positions[to];
         self.positions[to] = position_to_backup;
+        if position_to_backup.is_some() {
+            self.pieces_count += 1;
+        }
     }
 
     /// 所有棋子可能移动位置生成
@@ -970,36 +980,53 @@ impl Board {
         }
     }
 
-// TODO for test print board's all pieces
-//    fn print_fen(&self, mark: &str) {
-//        let mut fen = String::new();
-//        let mut space = 0usize;
-//        for i in 0usize..MAX_CELLS_SIZE {
-//            match self.positions[i] {
-//                None => {
-//                    space += 1;
-//                    if i == 89usize {
-//                        fen.push_str(&space.to_string());
-//                    }
-//                }
-//                Some(p) => {
-//                    if space > 0usize {
-//                        fen.push_str(&space.to_string());
-//                        space = 0usize;
-//                    }
-//                    fen.push_str(&p.to_string());
-//                }
-//            }
-//            if i > 0usize && i % WIDTH == 8usize {
-//                if space > 0usize {
-//                    fen.push_str(&space.to_string());
-//                    space = 0usize;
-//                }
-//                if i != 89usize {
-//                    fen.push_str("/");
-//                }
-//            }
-//        }
-//        println!("{}---{}", mark, fen)
-//    }
+    fn test_print_all_moves(&self, mark: &str, all_moves: &Vec<MinMaxNode>) {
+        for node in all_moves {
+            println!("{}---piece=[{}],from=[{}],to=[{}]", mark, node.piece, node.from, node.to);
+        }
+    }
+
+    fn test_print_node(&self, mark: &str, node: &MinMaxNode, value: i32) {
+        println!("{}---piece=[{}],from=[{}][{}],to=[{}][{}],value=[{}]",
+                 mark,
+                 node.piece,
+                 INDEX_ROW[node.from],
+                 INDEX_COLUMN[node.from],
+                 INDEX_ROW[node.to],
+                 INDEX_COLUMN[node.to],
+                 value);
+    }
+
+
+    fn test_print_fen(&self, mark: &str) {
+        let mut fen = String::new();
+        let mut space = 0usize;
+        for i in 0usize..MAX_CELLS_SIZE {
+            match self.positions[i] {
+                None => {
+                    space += 1;
+                    if i == 89usize {
+                        fen.push_str(&space.to_string());
+                    }
+                }
+                Some(p) => {
+                    if space > 0usize {
+                        fen.push_str(&space.to_string());
+                        space = 0usize;
+                    }
+                    fen.push_str(&p.to_string());
+                }
+            }
+            if i > 0usize && i % WIDTH == 8usize {
+                if space > 0usize {
+                    fen.push_str(&space.to_string());
+                    space = 0usize;
+                }
+                if i != 89usize {
+                    fen.push_str("/");
+                }
+            }
+        }
+        println!("{}---{}", mark, fen)
+    }
 }
