@@ -43,16 +43,31 @@ const BLACK_PAWN: char = 'p';
 /**************************************************************************************************/
 /*******************************     INDEX DEFINITION     *****************************************/
 /**************************************************************************************************/
+///
 const INDEX_ROW: [usize; MAX_CELLS_SIZE] = [
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3,
-    3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7,
-    7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, // L1
+    1, 1, 1, 1, 1, 1, 1, 1, 1, // L2
+    2, 2, 2, 2, 2, 2, 2, 2, 2, // L3
+    3, 3, 3, 3, 3, 3, 3, 3, 3, // L4
+    4, 4, 4, 4, 4, 4, 4, 4, 4, // L5
+    5, 5, 5, 5, 5, 5, 5, 5, 5, // L6
+    6, 6, 6, 6, 6, 6, 6, 6, 6, // L7
+    7, 7, 7, 7, 7, 7, 7, 7, 7, // L8
+    8, 8, 8, 8, 8, 8, 8, 8, 8, // L9
+    9, 9, 9, 9, 9, 9, 9, 9, 9, // L10
 ];
 
 const INDEX_COLUMN: [usize; MAX_CELLS_SIZE] = [
-    0, 1, 2, 3, 4, 5, 6, 7, 8, 0, 1, 2, 3, 4, 5, 6, 7, 8, 0, 1, 2, 3, 4, 5, 6, 7, 8, 0, 1, 2, 3, 4,
-    5, 6, 7, 8, 0, 1, 2, 3, 4, 5, 6, 7, 8, 0, 1, 2, 3, 4, 5, 6, 7, 8, 0, 1, 2, 3, 4, 5, 6, 7, 8, 0,
-    1, 2, 3, 4, 5, 6, 7, 8, 0, 1, 2, 3, 4, 5, 6, 7, 8, 0, 1, 2, 3, 4, 5, 6, 7, 8,
+    0, 1, 2, 3, 4, 5, 6, 7, 8, // C1
+    0, 1, 2, 3, 4, 5, 6, 7, 8, // C2
+    0, 1, 2, 3, 4, 5, 6, 7, 8, // C3
+    0, 1, 2, 3, 4, 5, 6, 7, 8, // C4
+    0, 1, 2, 3, 4, 5, 6, 7, 8, // C5
+    0, 1, 2, 3, 4, 5, 6, 7, 8, // C6
+    0, 1, 2, 3, 4, 5, 6, 7, 8, // C7
+    0, 1, 2, 3, 4, 5, 6, 7, 8, // C8
+    0, 1, 2, 3, 4, 5, 6, 7, 8, // C9
+    0, 1, 2, 3, 4, 5, 6, 7, 8, // C10
 ];
 
 const INDEX_ROW_POSITIONS: [[usize; WIDTH]; HEIGHT] = [
@@ -80,90 +95,126 @@ const INDEX_COLUMN_POSITIONS: [[usize; HEIGHT]; WIDTH] = [
     [8, 17, 26, 35, 44, 53, 62, 71, 80, 89],
 ];
 
+/// 允许的移动范围：帅
 const RED_KING_POSITIONS: [usize; 9] = [66, 67, 68, 75, 76, 77, 84, 85, 86];
 
+/// 允许的移动范围：将
 const BLACK_KING_POSITIONS: [usize; 9] = [3, 4, 5, 12, 13, 14, 21, 22, 23];
 
 /**************************************************************************************************/
 /*******************************   EVALUATE DEFINITION    *****************************************/
 /**************************************************************************************************/
-// 帅 士 相 马 车 炮 兵
-const EVALUATE_BASIC: [i32; 7] = [1000000, 110, 110, 300, 600, 300, 70];
+/// 评价系统：棋子价值
+///
+/// 帅（0）： 1000000 <br>
+/// 士（1）： 110 <br>
+/// 相（2）： 110 <br>
+/// 马（3）： 300 <br>
+/// 车（4）： 600 <br>
+/// 炮（5）： 300 <br>
+/// 兵（6）： 70
+const EV_PIECE: [i32; 7] = [1000000, 110, 110, 300, 600, 300, 70];
 
-//const EVALUATE_KING: [i32; MAX_CELLS_SIZE] = [
-//    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-//    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-//    0, 0, -9, -9, -9, 0, 0, 0, 0, 0, 0, -8, -8, -8, 0, 0, 0, 0, 0, 0, 1, 5, 1, 0, 0, 0,
-//];
+// const EV_POS_KING: [i32; MAX_CELLS_SIZE] = [
+//    0, 0, 0, 0, 0, 0, 0, 0, 0,    // L1
+//    0, 0, 0, 0, 0, 0, 0, 0, 0,    // L2
+//    0, 0, 0, 0, 0, 0, 0, 0, 0,    // L3
+//    0, 0, 0, 0, 0, 0, 0, 0, 0,    // L4
+//    0, 0, 0, 0, 0, 0, 0, 0, 0,    // L5
+//    0, 0, 0, 0, 0, 0, 0, 0, 0,    // L6
+//    0, 0, 0, 0, 0, 0, 0, 0, 0,    // L7
+//    0, 0, 0, -9, -9, -9, 0, 0, 0, // L8
+//    0, 0, 0, -8, -8, -8, 0, 0, 0, // L9
+//    0, 0, 0, 1, 5, 1, 0, 0, 0     // L10
+// ];
 //
-//const EVALUATE_ADVISER: [i32; MAX_CELLS_SIZE] = [
-//    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-//    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-//    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-//];
+// const EV_POS_ADVISER: [i32; MAX_CELLS_SIZE] = [
+//    0, 0, 0, 0, 0, 0, 0, 0, 0, // L1
+//    0, 0, 0, 0, 0, 0, 0, 0, 0, // L2
+//    0, 0, 0, 0, 0, 0, 0, 0, 0, // L3
+//    0, 0, 0, 0, 0, 0, 0, 0, 0, // L4
+//    0, 0, 0, 0, 0, 0, 0, 0, 0, // L5
+//    0, 0, 0, 0, 0, 0, 0, 0, 0, // L6
+//    0, 0, 0, 0, 0, 0, 0, 0, 0, // L7
+//    0, 0, 0, 0, 0, 0, 0, 0, 0, // L8
+//    0, 0, 0, 0, 3, 0, 0, 0, 0, // L9
+//    0, 0, 0, 0, 0, 0, 0, 0, 0  // L10
+// ];
 //
-//const EVALUATE_BISHOP: [i32; MAX_CELLS_SIZE] = [
-//    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-//    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-//    -2, 0, 0, 0, 3, 0, 0, 0, -2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-//];
+// const EV_POS_BISHOP: [i32; MAX_CELLS_SIZE] = [
+//    0, 0, 0, 0, 0, 0, 0, 0, 0,   // L1
+//    0, 0, 0, 0, 0, 0, 0, 0, 0,   // L2
+//    0, 0, 0, 0, 0, 0, 0, 0, 0,   // L3
+//    0, 0, 0, 0, 0, 0, 0, 0, 0,   // L4
+//    0, 0, 0, 0, 0, 0, 0, 0, 0,   // L5
+//    0, 0, 0, 0, 0, 0, 0, 0, 0,   // L6
+//    0, 0, 0, 0, 0, 0, 0, 0, 0,   // L7
+//    -2, 0, 0, 0, 3, 0, 0, 0, -2, // L8
+//    0, 0, 0, 0, 0, 0, 0, 0, 0,   // L9
+//    0, 0, 0, 0, 0, 0, 0, 0, 0    // L10
+// ];
 
-const EVALUATE_KNIGHT: [i32; MAX_CELLS_SIZE] = [
-    4, 8, 16, 12, 4, 12, 16, 8, 4,
-    4, 10, 28, 16, 8, 16, 28, 10, 4,
-    12, 14, 16, 20, 18, 20, 16, 14, 12,
-    8, 24, 18, 24, 20, 24, 18, 24, 8,
-    6, 16, 14, 18, 16, 18, 14, 16, 6,
-    4, 12, 16, 14, 12, 14, 16, 12, 4,
-    2, 6, 8, 6, 10, 6, 8, 6, 2,
-    4, 2, 8, 8, 4, 8, 8, 2, 4,
-    0, 2, 4, 4, -2, 4, 4, 2, 0,
-    0, -4, 0, 0, 0, 0, 0, -4, 0
+/// 评价系统：位置价值 马
+const EV_POS_KNIGHT: [i32; MAX_CELLS_SIZE] = [
+    4, 8, 16, 12, 4, 12, 16, 8, 4, // L1
+    4, 10, 28, 16, 8, 16, 28, 10, 4, // L2
+    12, 14, 16, 20, 18, 20, 16, 14, 12, // L3
+    8, 24, 18, 24, 20, 24, 18, 24, 8, // L4
+    6, 16, 14, 18, 16, 18, 14, 16, 6, // L5
+    4, 12, 16, 14, 12, 14, 16, 12, 4, // L6
+    2, 6, 8, 6, 10, 6, 8, 6, 2, // L7
+    4, 2, 8, 8, 4, 8, 8, 2, 4, // L8
+    0, 2, 4, 4, -2, 4, 4, 2, 0, // L9
+    0, -4, 0, 0, 0, 0, 0, -4, 0, // L10
 ];
 
-const EVALUATE_ROOK: [i32; MAX_CELLS_SIZE] = [
-    14, 14, 12, 18, 16, 18, 12, 14, 14,
-    16, 20, 18, 24, 26, 24, 18, 20, 16,
-    12, 12, 12, 18, 18, 18, 12, 12, 12,
-    12, 18, 16, 22, 22, 22, 16, 18, 12,
-    12, 14, 12, 18, 18, 18, 12, 14, 12,
-    12, 16, 14, 20, 20, 20, 14, 16, 12,
-    6, 10, 8, 14, 14, 14, 8, 10, 6,
-    4, 8, 6, 14, 12, 14, 6, 8, 4,
-    8, 4, 8, 16, 8, 16, 8, 4, 8,
-    -2, 10, 6, 14, 12, 14, 6, 10, -2
+/// 评价系统：位置价值 车
+const EV_POS_ROOK: [i32; MAX_CELLS_SIZE] = [
+    14, 14, 12, 18, 16, 18, 12, 14, 14, // L1
+    16, 20, 18, 24, 26, 24, 18, 20, 16, // L2
+    12, 12, 12, 18, 18, 18, 12, 12, 12, // L3
+    12, 18, 16, 22, 22, 22, 16, 18, 12, // L4
+    12, 14, 12, 18, 18, 18, 12, 14, 12, // L5
+    12, 16, 14, 20, 20, 20, 14, 16, 12, // L6
+    6, 10, 8, 14, 14, 14, 8, 10, 6, // L7
+    4, 8, 6, 14, 12, 14, 6, 8, 4, // L8
+    8, 4, 8, 16, 8, 16, 8, 4, 8, // L9
+    -2, 10, 6, 14, 12, 14, 6, 10, -2, // L10
 ];
 
-const EVALUATE_CANNON: [i32; MAX_CELLS_SIZE] = [
-    6, 4, 0, -10, -12, -10, 0, 4, 6,
-    2, 2, 0, -4, -14, -4, 0, 2, 2,
-    2, 2, 0, -10, -8, -10, 0, 2, 2,
-    0, 0, -2, 4, 10, 4, -2, 0, 0,
-    0, 0, 0, 2, 8, 2, 0, 0, 0,
-    -2, 0, 4, 2, 6, 2, 4, 0, -2,
-    0, 0, 0, 2, 4, 2, 0, 0, 0,
-    4, 0, 8, 6, 10, 6, 8, 0, 4,
-    0, 2, 4, 6, 6, 6, 4, 2, 0,
-    0, 0, 2, 6, 6, 6, 2, 0, 0
+/// 评价系统：位置价值 炮
+const EV_POS_CANNON: [i32; MAX_CELLS_SIZE] = [
+    6, 4, 0, -10, -12, -10, 0, 4, 6, // L1
+    2, 2, 0, -4, -14, -4, 0, 2, 2, // L2
+    2, 2, 0, -10, -8, -10, 0, 2, 2, // L3
+    0, 0, -2, 4, 10, 4, -2, 0, 0, // L4
+    0, 0, 0, 2, 8, 2, 0, 0, 0, // L5
+    -2, 0, 4, 2, 6, 2, 4, 0, -2, // L6
+    0, 0, 0, 2, 4, 2, 0, 0, 0, // L7
+    4, 0, 8, 6, 10, 6, 8, 0, 4, // L8
+    0, 2, 4, 6, 6, 6, 4, 2, 0, // L9
+    0, 0, 2, 6, 6, 6, 2, 0, 0, // L10
 ];
 
-const EVALUATE_PAWN: [i32; MAX_CELLS_SIZE] = [
-    0, 3, 6, 9, 12, 9, 6, 3, 0,
-    18, 36, 56, 80, 120, 80, 56, 36, 18,
-    14, 26, 42, 60, 80, 60, 42, 26, 14,
-    10, 20, 30, 34, 40, 34, 30, 20, 10,
-    6, 12, 18, 18, 20, 18, 18, 12, 6,
-    2, 0, 8, 0, 8, 0, 8, 0, 2,
-    0, 0, -2, 0, 4, 0, -2, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0
+/// 评价系统：位置价值 兵／卒
+const EV_POS_PAWN: [i32; MAX_CELLS_SIZE] = [
+    0, 3, 6, 9, 12, 9, 6, 3, 0, // L1
+    18, 36, 56, 80, 120, 80, 56, 36, 18, // L2
+    14, 26, 42, 60, 80, 60, 42, 26, 14, // L3
+    10, 20, 30, 34, 40, 34, 30, 20, 10, // L4
+    6, 12, 18, 18, 20, 18, 18, 12, 6, // L5
+    2, 0, 8, 0, 8, 0, 8, 0, 2, // L6
+    0, 0, -2, 0, 4, 0, -2, 0, 0, // L7
+    0, 0, 0, 0, 0, 0, 0, 0, 0, // L8
+    0, 0, 0, 0, 0, 0, 0, 0, 0, // L9
+    0, 0, 0, 0, 0, 0, 0, 0, 0, // L10
 ];
 
 /**************************************************************************************************/
 /*******************************  PIECE MOVES DEFINITION  *****************************************/
 /**************************************************************************************************/
 lazy_static! {
+    /// 允许移动的范围：帅／将
     static ref MOVES_KING: HashMap<usize, Vec<usize>> = {
         let mut map = HashMap::new();
         map.insert(3, vec![4, 12]);
@@ -187,6 +238,7 @@ lazy_static! {
         map.insert(86, vec![77, 85]);
         map
     };
+    /// 允许移动的范围：仕／士
     static ref MOVES_ADVISER: HashMap<usize, Vec<usize>> = {
         let mut map = HashMap::new();
         map.insert(3, vec![13]);
@@ -202,6 +254,7 @@ lazy_static! {
         map.insert(86, vec![76]);
         map
     };
+    /// 允许移动的范围：相／象
     static ref MOVES_BISHOP: HashMap<usize, Vec<usize>> = {
         let mut map = HashMap::new();
         map.insert(2, vec![18, 22]);
@@ -223,7 +276,7 @@ lazy_static! {
     };
 }
 
-// By default, player is Red, and computer is Black.
+/// 默认玩家是红色，电脑士黑色
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 enum Side {
     Red,
@@ -247,6 +300,7 @@ impl MinMaxNode {
     }
 }
 
+/// 棋盘
 pub struct Board {
     pieces_count: usize,
     positions: [Option<char>; MAX_CELLS_SIZE],
@@ -255,7 +309,6 @@ pub struct Board {
 }
 
 impl Board {
-
     /// 初始化棋盘
     ///
     /// 新建一个棋盘对象。
@@ -267,7 +320,6 @@ impl Board {
             cache_black_king: 0usize,
         }
     }
-
 
     /// 初始化棋盘
     ///
@@ -308,14 +360,14 @@ impl Board {
         };
 
         let mut best_move: Option<MinMaxNode> = None;
-        let mut best_value = i32::min_value();
+        let mut best_value = i32::MIN;
         let mut all_moves: Vec<MinMaxNode> = self.generate_all_moves(&Side::Black);
         if DEBUG_MODE {
             self.test_print_all_moves("all_moves", &all_moves);
         }
         while let Some(node) = all_moves.pop() {
             let position_to_backup: Option<char> = self.temporary_move(node.from, node.to);
-            let value: i32 = self.min_max(search_depth, i32::max_value(), i32::min_value(), &Side::Red);
+            let value: i32 = self.min_max(search_depth, i32::MAX, i32::MIN, &Side::Red);
             if best_move.is_none() || value >= best_value {
                 best_move = Some(node);
                 best_value = value;
@@ -401,60 +453,60 @@ impl Board {
             if let Some(p) = self.positions[i] {
                 match p {
                     RED_KING => {
-                        sum_red += EVALUATE_BASIC[0];
-//                        sum_red += EVALUATE_KING[i];
+                        sum_red += EV_PIECE[0];
+                        // sum_red += EVALUATE_KING[i];
                     }
                     RED_ADVISER => {
-                        sum_red += EVALUATE_BASIC[1];
-//                        sum_red += EVALUATE_ADVISER[i];
+                        sum_red += EV_PIECE[1];
+                        // sum_red += EVALUATE_ADVISER[i];
                     }
                     RED_BISHOP => {
-                        sum_red += EVALUATE_BASIC[2];
-//                        sum_red += EVALUATE_BISHOP[i];
+                        sum_red += EV_PIECE[2];
+                        // sum_red += EVALUATE_BISHOP[i];
                     }
                     RED_KNIGHT => {
-                        sum_red += EVALUATE_BASIC[3];
-                        sum_red += EVALUATE_KNIGHT[i] * 8;
+                        sum_red += EV_PIECE[3];
+                        sum_red += EV_POS_KNIGHT[i] * 8;
                     }
                     RED_ROOK => {
-                        sum_red += EVALUATE_BASIC[4];
-                        sum_red += EVALUATE_ROOK[i] * 8;
+                        sum_red += EV_PIECE[4];
+                        sum_red += EV_POS_ROOK[i] * 8;
                     }
                     RED_CANNON => {
-                        sum_red += EVALUATE_BASIC[5];
-                        sum_red += EVALUATE_CANNON[i] * 8;
+                        sum_red += EV_PIECE[5];
+                        sum_red += EV_POS_CANNON[i] * 8;
                     }
                     RED_PAWN => {
-                        sum_red += EVALUATE_BASIC[6];
-                        sum_red += EVALUATE_PAWN[i] * 8;
+                        sum_red += EV_PIECE[6];
+                        sum_red += EV_POS_PAWN[i] * 8;
                     }
                     BLACK_KING => {
-                        sum_black += EVALUATE_BASIC[0];
-//                        sum_black += EVALUATE_KING[89 - i];
+                        sum_black += EV_PIECE[0];
+                        // sum_black += EVALUATE_KING[89 - i];
                     }
                     BLACK_ADVISER => {
-                        sum_black += EVALUATE_BASIC[1];
-//                        sum_black += EVALUATE_ADVISER[89 - i];
+                        sum_black += EV_PIECE[1];
+                        // sum_black += EVALUATE_ADVISER[89 - i];
                     }
                     BLACK_BISHOP => {
-                        sum_black += EVALUATE_BASIC[2];
-//                        sum_black += EVALUATE_BISHOP[89 - i];
+                        sum_black += EV_PIECE[2];
+                        // sum_black += EVALUATE_BISHOP[89 - i];
                     }
                     BLACK_KNIGHT => {
-                        sum_black += EVALUATE_BASIC[3];
-                        sum_black += EVALUATE_KNIGHT[89 - i] * 8;
+                        sum_black += EV_PIECE[3];
+                        sum_black += EV_POS_KNIGHT[89 - i] * 8;
                     }
                     BLACK_ROOK => {
-                        sum_black += EVALUATE_BASIC[4];
-                        sum_black += EVALUATE_ROOK[89 - i] * 8;
+                        sum_black += EV_PIECE[4];
+                        sum_black += EV_POS_ROOK[89 - i] * 8;
                     }
                     BLACK_CANNON => {
-                        sum_black += EVALUATE_BASIC[5];
-                        sum_black += EVALUATE_CANNON[89 - i] * 8;
+                        sum_black += EV_PIECE[5];
+                        sum_black += EV_POS_CANNON[89 - i] * 8;
                     }
                     BLACK_PAWN => {
-                        sum_black += EVALUATE_BASIC[6];
-                        sum_black += EVALUATE_PAWN[89 - i] * 8;
+                        sum_black += EV_PIECE[6];
+                        sum_black += EV_POS_PAWN[89 - i] * 8;
                     }
                     _ => {}
                 }
@@ -646,8 +698,7 @@ impl Board {
         let column_positions: &[usize; HEIGHT] = &INDEX_COLUMN_POSITIONS[column_number];
 
         let mut piece_moves: Vec<usize> = Vec::new();
-
-        // up
+        // 上
         if row_number > 0usize {
             self.generate_piece_move_by_line(
                 row_number - 1usize,
@@ -660,8 +711,7 @@ impl Board {
                 skip,
             );
         }
-
-        // down
+        // 下
         if row_number < 9usize {
             self.generate_piece_move_by_line(
                 row_number + 1usize,
@@ -674,8 +724,7 @@ impl Board {
                 skip,
             );
         }
-
-        // right
+        // 右
         if column_number < 8usize {
             self.generate_piece_move_by_line(
                 column_number + 1usize,
@@ -688,8 +737,7 @@ impl Board {
                 skip,
             );
         }
-
-        // left
+        // 左
         if column_number > 0usize {
             self.generate_piece_move_by_line(
                 column_number - 1usize,
@@ -783,7 +831,7 @@ impl Board {
         // 生成所有位置 (过滤棋盘外位置) (过滤马眼有棋子位置)
         let mut piece_moves: Vec<usize> = Vec::new();
 
-        // up
+        // 上
         if row_number > 1usize && self.is_empty(position_from - WIDTH) {
             if column_number > 0usize {
                 piece_moves.push(position_from - 19usize);
@@ -793,7 +841,7 @@ impl Board {
             }
         }
 
-        // down
+        // 下
         if row_number < 8usize && self.is_empty(position_from + WIDTH) {
             if column_number > 0usize {
                 piece_moves.push(position_from + 17usize);
@@ -803,7 +851,7 @@ impl Board {
             }
         }
 
-        // right
+        // 右
         if column_number < 7usize && self.is_empty(position_from + 1usize) {
             if row_number > 0usize {
                 piece_moves.push(position_from - 7usize);
@@ -813,7 +861,7 @@ impl Board {
             }
         }
 
-        // left
+        // 左
         if column_number > 1usize && self.is_empty(position_from - 1usize) {
             if row_number > 0usize {
                 piece_moves.push(position_from - 11usize);
@@ -1022,21 +1070,25 @@ impl Board {
 
     fn test_print_all_moves(&self, mark: &str, all_moves: &Vec<MinMaxNode>) {
         for node in all_moves {
-            println!("{}---piece=[{}],from=[{}],to=[{}]", mark, node.piece, node.from, node.to);
+            println!(
+                "{}---piece=[{}],from=[{}],to=[{}]",
+                mark, node.piece, node.from, node.to
+            );
         }
     }
 
     fn test_print_node(&self, mark: &str, node: &MinMaxNode, value: i32) {
-        println!("{}---piece=[{}],from=[{}][{}],to=[{}][{}],value=[{}]",
-                 mark,
-                 node.piece,
-                 INDEX_ROW[node.from],
-                 INDEX_COLUMN[node.from],
-                 INDEX_ROW[node.to],
-                 INDEX_COLUMN[node.to],
-                 value);
+        println!(
+            "{}---piece=[{}],from=[{}][{}],to=[{}][{}],value=[{}]",
+            mark,
+            node.piece,
+            INDEX_ROW[node.from],
+            INDEX_COLUMN[node.from],
+            INDEX_ROW[node.to],
+            INDEX_COLUMN[node.to],
+            value
+        );
     }
-
 
     fn test_print_fen(&self, mark: &str) {
         let mut fen = String::new();
