@@ -2,5 +2,5 @@
 /.idea
 *.xlsx
 /backup
-/BoardStructure.md
-/definition.txt
+/docs/BoardStructure.md
+/docs/definition.txt

@@ -10,13 +10,13 @@ const DEBUG_MODE: bool = false;
 /**************************************************************************************************/
 /*******************************     BASIC DEFINITION     *****************************************/
 /**************************************************************************************************/
-// 横向
+/// 横向
 const WIDTH: usize = 9;
-// 纵向
+/// 纵向
 const HEIGHT: usize = 10;
-// 最大位置数
+/// 最大位置数
 const MAX_CELLS_SIZE: usize = WIDTH * HEIGHT;
-// 最大棋子数
+/// 最大棋子数
 const MAX_PIECES_SIZE: usize = 32;
 
 const STEP_INCREASE: bool = true;
@@ -24,26 +24,39 @@ const STEP_DECREASE: bool = false;
 const PROCESS_ROW: bool = true;
 const PROCESS_COLUMN: bool = false;
 
-// 帅 士 相 马 车 炮 兵
+/// 红色：帅
 const RED_KING: char = 'K';
+/// 红色：仕
 const RED_ADVISER: char = 'A';
+/// 红色：相
 const RED_BISHOP: char = 'B';
+/// 红色：马
 const RED_KNIGHT: char = 'N';
+/// 红色：车
 const RED_ROOK: char = 'R';
+/// 红色：炮
 const RED_CANNON: char = 'C';
+/// 红色：兵
 const RED_PAWN: char = 'P';
+/// 黑色：将
 const BLACK_KING: char = 'k';
+/// 黑色：士
 const BLACK_ADVISER: char = 'a';
+/// 黑色：象
 const BLACK_BISHOP: char = 'b';
+/// 黑色：車
 const BLACK_KNIGHT: char = 'n';
+/// 黑色：炮
 const BLACK_ROOK: char = 'r';
+/// 黑色：馬
 const BLACK_CANNON: char = 'c';
+/// 黑色：卒
 const BLACK_PAWN: char = 'p';
 
 /**************************************************************************************************/
 /*******************************     INDEX DEFINITION     *****************************************/
 /**************************************************************************************************/
-///
+/// 根据位置定位行号
 const INDEX_ROW: [usize; MAX_CELLS_SIZE] = [
     0, 0, 0, 0, 0, 0, 0, 0, 0, // L1
     1, 1, 1, 1, 1, 1, 1, 1, 1, // L2
@@ -57,6 +70,7 @@ const INDEX_ROW: [usize; MAX_CELLS_SIZE] = [
     9, 9, 9, 9, 9, 9, 9, 9, 9, // L10
 ];
 
+/// 根据位置定位列号
 const INDEX_COLUMN: [usize; MAX_CELLS_SIZE] = [
     0, 1, 2, 3, 4, 5, 6, 7, 8, // C1
     0, 1, 2, 3, 4, 5, 6, 7, 8, // C2
@@ -70,6 +84,7 @@ const INDEX_COLUMN: [usize; MAX_CELLS_SIZE] = [
     0, 1, 2, 3, 4, 5, 6, 7, 8, // C10
 ];
 
+/// 根据行号定位位置
 const INDEX_ROW_POSITIONS: [[usize; WIDTH]; HEIGHT] = [
     [0, 1, 2, 3, 4, 5, 6, 7, 8],
     [9, 10, 11, 12, 13, 14, 15, 16, 17],
@@ -83,6 +98,7 @@ const INDEX_ROW_POSITIONS: [[usize; WIDTH]; HEIGHT] = [
     [81, 82, 83, 84, 85, 86, 87, 88, 89],
 ];
 
+/// 根据列号定位位置
 const INDEX_COLUMN_POSITIONS: [[usize; HEIGHT]; WIDTH] = [
     [0, 9, 18, 27, 36, 45, 54, 63, 72, 81],
     [1, 10, 19, 28, 37, 46, 55, 64, 73, 82],
@@ -283,10 +299,14 @@ enum Side {
     Black,
 }
 
+/// 棋子移动
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 struct MinMaxNode {
+    /// 棋子
     piece: char,
+    /// 移动开始位置
     from: usize,
+    /// 移动结束位置
     to: usize,
 }
 
@@ -300,11 +320,15 @@ impl MinMaxNode {
     }
 }
 
-/// 棋盘
+/// 棋盘对象
 pub struct Board {
+    /// 棋子个数
     pieces_count: usize,
+    /// 棋盘位置数组
     positions: [Option<char>; MAX_CELLS_SIZE],
+    /// 红色帅的位置
     cache_red_king: usize,
+    /// 黑色将的位置
     cache_black_king: usize,
 }
 
@@ -533,6 +557,11 @@ impl Board {
         piece
     }
 
+    /// 恢复上一次移动
+    ///
+    /// * `from` - 棋子移动开始位置。
+    /// * `to` - 棋子移动对象位置。
+    /// * `position_to_backup` - 棋子备份
     fn recovery(&mut self, from: usize, to: usize, position_to_backup: Option<char>) {
         self.positions[from] = self.positions[to];
         self.positions[to] = position_to_backup;
@@ -678,11 +707,7 @@ impl Board {
     ///
     /// 根据对象棋子的上下左右四个方向生成可能移动位置。
     ///
-    /// * `start` - 棋子开始移动位置。
-    /// * `step` - 坐标增减(STEP_INCREASE或者STEP_DECREASE)。
-    /// * `process` - 方向（PROCESS_ROW或者PROCESS_COLUMN）。
-    /// * `end` - 棋子最多移动结束位置。
-    /// * `piece_moves` - 棋子所有移动坐标。
+    /// * `position_from` - 棋子当前位置。
     /// * `skip` - 跳过棋子数（炮:1,车:0）。
     fn generate_piece_move_by_four_direction(
         &self,
@@ -1068,6 +1093,7 @@ impl Board {
         }
     }
 
+    /// 测试用代码
     fn test_print_all_moves(&self, mark: &str, all_moves: &Vec<MinMaxNode>) {
         for node in all_moves {
             println!(
@@ -1077,6 +1103,7 @@ impl Board {
         }
     }
 
+    /// 测试用代码
     fn test_print_node(&self, mark: &str, node: &MinMaxNode, value: i32) {
         println!(
             "{}---piece=[{}],from=[{}][{}],to=[{}][{}],value=[{}]",
@@ -1090,6 +1117,7 @@ impl Board {
         );
     }
 
+    /// 测试用代码
     fn test_print_fen(&self, mark: &str) {
         let mut fen = String::new();
         let mut space = 0usize;
