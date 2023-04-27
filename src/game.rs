@@ -4,7 +4,7 @@ use serde_derive;
 use std::cmp;
 use std::collections::{HashMap, HashSet};
 
-// 是否打印计算过程
+// デバッグモード（計算中情報をプリントする）
 const DEBUG_MODE: bool = false;
 
 /**************************************************************************************************/
@@ -12,11 +12,11 @@ const DEBUG_MODE: bool = false;
 /**************************************************************************************************/
 // 横向
 const WIDTH: usize = 9;
-// 纵向
+// 縦向
 const HEIGHT: usize = 10;
 // 最大位置数
 const MAX_CELLS_SIZE: usize = WIDTH * HEIGHT;
-// 最大棋子数
+// ピースの最大数
 const MAX_PIECES_SIZE: usize = 32;
 
 const STEP_INCREASE: bool = true;
@@ -24,7 +24,7 @@ const STEP_DECREASE: bool = false;
 const PROCESS_ROW: bool = true;
 const PROCESS_COLUMN: bool = false;
 
-// 帅 士 相 马 车 炮 兵
+// ピース：帅 士 相 马 车 炮 兵
 const RED_KING: char = 'K';
 const RED_ADVISER: char = 'A';
 const RED_BISHOP: char = 'B';
@@ -87,7 +87,7 @@ const BLACK_KING_POSITIONS: [usize; 9] = [3, 4, 5, 12, 13, 14, 21, 22, 23];
 /**************************************************************************************************/
 /*******************************   EVALUATE DEFINITION    *****************************************/
 /**************************************************************************************************/
-// 帅 士 相 马 车 炮 兵
+// ピース：帅 士 相 马 车 炮 兵
 const EVALUATE_BASIC: [i32; 7] = [1000000, 110, 110, 300, 600, 300, 70];
 
 //const EVALUATE_KING: [i32; MAX_CELLS_SIZE] = [
@@ -256,9 +256,9 @@ pub struct Board {
 
 impl Board {
 
-    /// 初始化棋盘
+    /// ボード初期化
     ///
-    /// 新建一个棋盘对象。
+    /// ボードを初期する
     pub fn new() -> Board {
         Board {
             pieces_count: 0usize,
@@ -269,11 +269,11 @@ impl Board {
     }
 
 
-    /// 初始化棋盘
+    /// ボード初期化
     ///
-    /// 根据FEN初始化棋盘。
+    /// FENよりボードを初期する
     ///
-    /// * `fen` - FEN字符串。
+    /// * `fen` - FEN
     pub fn init_board(&mut self, fen: &str) {
         // rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR
         self.clear();
@@ -294,11 +294,12 @@ impl Board {
         }
     }
 
-    /// 检索
+    /// 検索
     ///
-    /// 检索下一步，返回移动坐标,
-    /// 返回值为字符串类型，长度为4，分别代表【开始.x, 开始.y, 结束.x, 结束.y】，坐标值从0开始
+    /// 次のステップを検索し、移動先を返却する
+    /// 戻り値：文字列型、4桁、「移動元.x、移動元.y、移動先.x、移動先.y」、xとyは0から
     pub fn search(&mut self) -> String {
+        // 深さ
         let search_depth: usize = match self.pieces_count {
             0..=4 => 6,
             5..=6 => 5,
@@ -328,12 +329,12 @@ impl Board {
         self.translate(best_move.unwrap().from, best_move.unwrap().to)
     }
 
-    /// 转换
+    /// 変換
     ///
-    /// 将移动位置转换成4位字符串，分别代表【开始.x, 开始.y, 结束.x, 结束.y】，坐标值从0开始。
+    /// 移動処理を4桁文字列へ変換する：「移動元.x、移動元.y、移動先.x、移動先.y」、xとyは0から
     ///
-    /// * `from` - 开始位置。
-    /// * `to` - 移动对象位置。
+    /// * `from` - 移動元位置
+    /// * `to` - 移動先位置
     fn translate(&self, from: usize, to: usize) -> String {
         let mut position: String = String::new();
         position.push_str(&INDEX_ROW[from].to_string());
@@ -343,14 +344,14 @@ impl Board {
         position
     }
 
-    /// 极大极小值计算
+    /// MinMax計算
     ///
-    /// 返回计算后的极大极小值。
+    /// 計算後MinMax値を戻る
     ///
-    /// * `depth` - 深度。
-    /// * `min` - 极小值。
-    /// * `max` - 极大值。
-    /// * `side` - 红色或者黑色，当前棋子的移动方。
+    /// * `depth` - 深さ
+    /// * `min` - 最小値
+    /// * `max` - 最大値
+    /// * `side` - 現在当番？の棋士、赤もしくは黒
     fn min_max(&mut self, depth: usize, min: i32, max: i32, side: &Side) -> i32 {
         match depth {
             0 => {
@@ -390,9 +391,9 @@ impl Board {
         }
     }
 
-    /// 棋子评价
+    /// 評価
     ///
-    /// 对棋盘上所有棋子评价。
+    /// ボードのピースを評価する
     fn evaluate(&self) -> i32 {
         // By default, only calculate black's value
         let mut sum_red = 0i32;
@@ -463,14 +464,14 @@ impl Board {
         sum_black - sum_red
     }
 
-    /// 移动棋子
+    /// ピース移動
     ///
-    /// 临时移动棋子。
+    /// 臨時のピース移動
     ///
-    /// * `from` - 棋子移动开始位置。
-    /// * `to` - 棋子移动对象位置。
+    /// * `from` - 移動元位置
+    /// * `to` - 移動先位置
     ///
-    /// 返回棋子移动对象位置的棋子备份
+    /// 移動元ピースのバックアップを戻る
     fn temporary_move(&mut self, from: usize, to: usize) -> Option<char> {
         let piece = self.positions[to];
         self.positions[to] = self.positions[from];
@@ -481,6 +482,14 @@ impl Board {
         piece
     }
 
+    /// リカバリー
+    /// 
+    /// ボードをリカバリーする
+    /// 
+    /// * `from` - 移動元位置
+    /// * `to` - 移動先位置
+    /// * `position_to_backup` - バックアップしたピース
+    /// 
     fn recovery(&mut self, from: usize, to: usize, position_to_backup: Option<char>) {
         self.positions[from] = self.positions[to];
         self.positions[to] = position_to_backup;
@@ -489,9 +498,7 @@ impl Board {
         }
     }
 
-    /// 所有棋子可能移动位置生成
-    ///
-    /// 生成棋盘上所有棋子可能移动的所有位置。
+    /// 全てのピース可能な移動を記録する
     fn generate_all_moves(&mut self, side: &Side) -> Vec<MinMaxNode> {
         let mut all_moves: Vec<MinMaxNode> = Vec::new();
         for i in 0..MAX_CELLS_SIZE {
@@ -525,14 +532,12 @@ impl Board {
         all_moves
     }
 
-    /// 兵（卒）可能移动位置生成
+    /// 兵（卒）可能な移動を記録する
     ///
-    /// 生成兵（卒）可能移动的所有位置。
-    ///
-    /// * `all_moves` - 所有可移动棋子集合。
-    /// * `side` - 红色或者黑色，当前棋子的移动方。
-    /// * `piece_from` - 兵（卒）棋子。
-    /// * `position_from` - 兵（卒）当前位置。
+    /// * `all_moves` - 移動可能なピース
+    /// * `side` - 赤もしくは黒、移動する人
+    /// * `piece_from` - 兵（卒）
+    /// * `position_from` - 兵（卒）現在の位置
     fn generate_pawn(
         &mut self,
         all_moves: &mut Vec<MinMaxNode>,
@@ -582,13 +587,11 @@ impl Board {
         self.generate_general_moves(all_moves, piece_from, position_from, &piece_moves);
     }
 
-    /// 炮可能移动位置生成
+    /// 炮　可能な移動を記録する
     ///
-    /// 生成炮可能移动的所有位置。
-    ///
-    /// * `all_moves` - 所有可移动棋子集合。
-    /// * `piece_from` - 炮棋子。
-    /// * `position_from` - 炮当前位置。
+    /// * `all_moves` - 移動可能なピース
+    /// * `piece_from` - 炮
+    /// * `position_from` - 炮　現在の位置
     fn generate_cannon(
         &mut self,
         all_moves: &mut Vec<MinMaxNode>,
@@ -602,13 +605,11 @@ impl Board {
         self.generate_general_moves(all_moves, piece_from, position_from, &piece_moves);
     }
 
-    /// 车（車）可能移动位置生成
+    /// 车（車）可能な移動を記録する
     ///
-    /// 生成车（車）可能移动的所有位置。
-    ///
-    /// * `all_moves` - 所有可移动棋子集合。
-    /// * `piece_from` - 车（車）棋子。
-    /// * `position_from` - 车（車）当前位置。
+    /// * `all_moves` - 移動可能なピース
+    /// * `piece_from` - 车（車）
+    /// * `position_from` - 车（車）現在の位置
     fn generate_rook(
         &mut self,
         all_moves: &mut Vec<MinMaxNode>,
@@ -622,16 +623,16 @@ impl Board {
         self.generate_general_moves(all_moves, piece_from, position_from, &piece_moves);
     }
 
-    /// 直线移动棋子可能移动位置生成（车/炮）
+    /// 直進移動するピース可能な移動を記録する（车/炮）
     ///
-    /// 根据对象棋子的上下左右四个方向生成可能移动位置。
+    /// 上下左右四つの方面で移動可能な位置を記録する
     ///
-    /// * `start` - 棋子开始移动位置。
-    /// * `step` - 坐标增减(STEP_INCREASE或者STEP_DECREASE)。
-    /// * `process` - 方向（PROCESS_ROW或者PROCESS_COLUMN）。
-    /// * `end` - 棋子最多移动结束位置。
-    /// * `piece_moves` - 棋子所有移动坐标。
-    /// * `skip` - 跳过棋子数（炮:1,车:0）。
+    /// * `start` - ピース移動元位置
+    /// * `step` - ステップ（STEP_INCREASEまたはSTEP_DECREASE）
+    /// * `process` - 移動方向（PROCESS_ROWまたはPROCESS_COLUMN）
+    /// * `end` - ピース移動先位置
+    /// * `piece_moves` - ピース可能な移動位置
+    /// * `skip` - ピース移動方向スキップ数（炮:1,车:0）
     fn generate_piece_move_by_four_direction(
         &self,
         position_from: usize,
@@ -706,18 +707,18 @@ impl Board {
         piece_moves
     }
 
-    /// 直线移动棋子可能移动位置生成（车/炮）
+    /// 直线移动棋子可能移动位置を記録する（车/炮）
     ///
     /// 生成车（车/炮）可能移动的所有位置。
     ///
-    /// * `start` - 棋子开始移动位置。
-    /// * `step` - 坐标增减(STEP_INCREASE或者STEP_DECREASE)。
-    /// * `process` - 方向（PROCESS_ROW或者PROCESS_COLUMN）。
-    /// * `end` - 棋子最多移动结束位置。
-    /// * `row_positions` - 棋子所在行的所有位置坐标。
-    /// * `column_positions` - 棋子所在列的所有位置坐标。
-    /// * `piece_moves` - 棋子所有移动坐标。
-    /// * `skip` - 跳过棋子数（炮:1,车:0）。
+    /// * `start` - ピース移動元位置
+    /// * `step` - ステップ（STEP_INCREASEまたはSTEP_DECREASE）
+    /// * `process` - 移動方向（PROCESS_ROWまたはPROCESS_COLUMN）
+    /// * `end` - ピース移動先位置
+    /// * `row_positions` - ピース行ポジション
+    /// * `column_positions` - ピース縦ポジション
+    /// * `piece_moves` - ピース可能な移動位置
+    /// * `skip` - ピース移動方向スキップ数（炮:1,车:0）
     fn generate_piece_move_by_line(
         &self,
         start: usize,
@@ -763,13 +764,11 @@ impl Board {
         }
     }
 
-    /// 马（馬）可能移动位置生成
+    /// 馬可能な移动位置を記録する
     ///
-    /// 生成马（馬）可能移动的所有位置。
-    ///
-    /// * `all_moves` - 所有可移动棋子集合。
-    /// * `piece_from` - 马（馬）棋子。
-    /// * `position_from` - 马（馬）当前位置。
+    /// * `all_moves` - ピース可能な移動位置
+    /// * `piece_from` - ピース（馬）
+    /// * `position_from` - ピースのポジション
     fn generate_knight(
         &mut self,
         all_moves: &mut Vec<MinMaxNode>,
@@ -826,13 +825,11 @@ impl Board {
         self.generate_general_moves(all_moves, piece_from, position_from, &piece_moves);
     }
 
-    /// 相（象）可能移动位置生成
+    /// 相（象）可能な移动位置を記録する
     ///
-    /// 生成相（象）可能移动的所有位置。
-    ///
-    /// * `all_moves` - 所有可移动棋子集合。
-    /// * `piece_from` - 相（象）棋子。
-    /// * `position_from` - 相（象）当前位置。
+    /// * `all_moves` - ピース可能な移動位置
+    /// * `piece_from` - ピース　相（象）
+    /// * `position_from` - ピースのポジション
     fn generate_bishop(
         &mut self,
         all_moves: &mut Vec<MinMaxNode>,
@@ -844,13 +841,11 @@ impl Board {
         self.generate_general_moves(all_moves, piece_from, position_from, &piece_moves);
     }
 
-    /// 士（仕）可能移动位置生成
+    /// 士（仕）可能な移动位置を記録する
     ///
-    /// 生成士（仕）可能移动的所有位置。
-    ///
-    /// * `all_moves` - 所有可移动棋子集合。
-    /// * `piece_from` - 士（仕）棋子。
-    /// * `position_from` - 士（仕）当前位置。
+    /// * `all_moves` - ピース可能な移動位置
+    /// * `piece_from` - ピース　士（仕）
+    /// * `position_from` - ピースのポジション
     fn generate_adviser(
         &mut self,
         all_moves: &mut Vec<MinMaxNode>,
@@ -862,13 +857,11 @@ impl Board {
         self.generate_general_moves(all_moves, piece_from, position_from, &piece_moves);
     }
 
-    /// 帅（将）可能移动位置生成
+    /// 帅（将）可能な移动位置を記録する
     ///
-    /// 生成帅（将）可能移动的所有位置。
-    ///
-    /// * `all_moves` - 所有可移动棋子集合。
-    /// * `piece_from` - 帅（将）棋子。
-    /// * `position_from` - 帅（将）当前位置。
+    /// * `all_moves` - ピース可能な移動位置
+    /// * `piece_from` - ピース帅（将）
+    /// * `position_from` - ピースのポジション
     fn generate_king(
         &mut self,
         all_moves: &mut Vec<MinMaxNode>,
@@ -879,14 +872,12 @@ impl Board {
         self.generate_general_moves(all_moves, piece_from, position_from, &piece_moves);
     }
 
-    /// 固定坐标移动棋子可能移动位置生成
+    /// 固定位置移動ピース可能な移动位置を記録する
     ///
-    /// 生成固定坐标移动棋子可能移动的所有位置。
-    ///
-    /// * `all_moves` - 所有可移动棋子集合。
-    /// * `piece_from` - 棋子。
-    /// * `position_from` - 棋子当前位置。
-    /// * `piece_moves` - 棋子所有移动位置。
+    /// * `all_moves` - ピース可能な移動位置
+    /// * `piece_from` - 移動元ピース
+    /// * `position_from` - ピースのポジション
+    /// * `piece_moves` - ピース移動位置
     fn generate_general_moves(
         &mut self,
         all_moves: &mut Vec<MinMaxNode>,
@@ -910,12 +901,10 @@ impl Board {
         }
     }
 
-    /// 对将检测
+    /// 王手(对将)チェック
     ///
-    /// 检测双方是否处于对将状态。
-    ///
-    /// * `red_king_position` - 红色将军位置，参数可选。若传递None则从棋盘里自动取得，并刷新缓存位置。
-    /// * `black_king_position` - 黑色将军位置，参数可选。若传递None则从棋盘里自动取得，并刷新缓存位置。
+    /// * `red_king_position` - 赤の帅位置
+    /// * `black_king_position` - 黒の将の位置
     fn king_facing_check(
         &mut self,
         red_king_position: Option<usize>,
@@ -946,11 +935,9 @@ impl Board {
         }
     }
 
-    /// 将军位置取得
+    /// 帅（将）の位置を取得
     ///
-    /// 取得将军位置，并更新将军位置缓存。
-    ///
-    /// * `side` - 红色或者黑色，当前棋子的移动方。
+    /// * `side` - 赤/黒
     fn get_king_position(&mut self, side: &Side) -> usize {
         let cached_king_position: usize = match side {
             Side::Red => self.cache_red_king,
@@ -991,28 +978,24 @@ impl Board {
         }
     }
 
-    /// 非同色棋子检测
+    /// 同じ色のピースチェック（同じ色場合はfalse、違う色場合はture）
     ///
-    /// 检测是否为同一方的棋子。
-    ///
-    /// * `piece_from` - 检测对象棋子。
-    /// * `piece_to` - 检测对象棋子。
+    /// * `piece_from` - ピースーその１
+    /// * `piece_to` - ピースーその２
     fn is_not_same_side(&self, piece_from: char, piece_to: char) -> bool {
         piece_from.is_ascii_lowercase() != piece_to.is_ascii_lowercase()
     }
 
-    /// 棋子检测
+    /// ピース存在チェック
     ///
-    /// 检测指定位置是否存在棋子。
-    ///
-    /// * `position` - 指定位置。
+    /// * `position` - 指定位置
     fn is_empty(&self, position: usize) -> bool {
         self.positions[position].is_none()
     }
 
-    /// 棋盘清理
+    /// ボードクリア
     ///
-    /// 将棋盘上的棋子全部清理。
+    /// ボードのピースを全部クリアする
     fn clear(&mut self) {
         self.pieces_count = 0usize;
         for i in 0usize..MAX_CELLS_SIZE {
@@ -1020,53 +1003,52 @@ impl Board {
         }
     }
 
-    fn test_print_all_moves(&self, mark: &str, all_moves: &Vec<MinMaxNode>) {
-        for node in all_moves {
-            println!("{}---piece=[{}],from=[{}],to=[{}]", mark, node.piece, node.from, node.to);
-        }
-    }
+    // fn test_print_all_moves(&self, mark: &str, all_moves: &Vec<MinMaxNode>) {
+    //     for node in all_moves {
+    //         println!("{}---piece=[{}],from=[{}],to=[{}]", mark, node.piece, node.from, node.to);
+    //     }
+    // }
 
-    fn test_print_node(&self, mark: &str, node: &MinMaxNode, value: i32) {
-        println!("{}---piece=[{}],from=[{}][{}],to=[{}][{}],value=[{}]",
-                 mark,
-                 node.piece,
-                 INDEX_ROW[node.from],
-                 INDEX_COLUMN[node.from],
-                 INDEX_ROW[node.to],
-                 INDEX_COLUMN[node.to],
-                 value);
-    }
+    // fn test_print_node(&self, mark: &str, node: &MinMaxNode, value: i32) {
+    //     println!("{}---piece=[{}],from=[{}][{}],to=[{}][{}],value=[{}]",
+    //              mark,
+    //              node.piece,
+    //              INDEX_ROW[node.from],
+    //              INDEX_COLUMN[node.from],
+    //              INDEX_ROW[node.to],
+    //              INDEX_COLUMN[node.to],
+    //              value);
+    // }
 
-
-    fn test_print_fen(&self, mark: &str) {
-        let mut fen = String::new();
-        let mut space = 0usize;
-        for i in 0usize..MAX_CELLS_SIZE {
-            match self.positions[i] {
-                None => {
-                    space += 1;
-                    if i == 89usize {
-                        fen.push_str(&space.to_string());
-                    }
-                }
-                Some(p) => {
-                    if space > 0usize {
-                        fen.push_str(&space.to_string());
-                        space = 0usize;
-                    }
-                    fen.push_str(&p.to_string());
-                }
-            }
-            if i > 0usize && i % WIDTH == 8usize {
-                if space > 0usize {
-                    fen.push_str(&space.to_string());
-                    space = 0usize;
-                }
-                if i != 89usize {
-                    fen.push_str("/");
-                }
-            }
-        }
-        println!("{}---{}", mark, fen)
-    }
+    // fn test_print_fen(&self, mark: &str) {
+    //     let mut fen = String::new();
+    //     let mut space = 0usize;
+    //     for i in 0usize..MAX_CELLS_SIZE {
+    //         match self.positions[i] {
+    //             None => {
+    //                 space += 1;
+    //                 if i == 89usize {
+    //                     fen.push_str(&space.to_string());
+    //                 }
+    //             }
+    //             Some(p) => {
+    //                 if space > 0usize {
+    //                     fen.push_str(&space.to_string());
+    //                     space = 0usize;
+    //                 }
+    //                 fen.push_str(&p.to_string());
+    //             }
+    //         }
+    //         if i > 0usize && i % WIDTH == 8usize {
+    //             if space > 0usize {
+    //                 fen.push_str(&space.to_string());
+    //                 space = 0usize;
+    //             }
+    //             if i != 89usize {
+    //                 fen.push_str("/");
+    //             }
+    //         }
+    //     }
+    //     println!("{}---{}", mark, fen)
+    // }
 }

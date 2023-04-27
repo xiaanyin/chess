@@ -1,3 +1,5 @@
+### Language：[中文](Readme.md "Readme.md") [日本語](Readme_jp.md "Readme_jp.md")
+---
 ### 简介
 这是一个中国象棋引擎，由纯Rust写成。
 目的是为了学习Rust和实践极大极小值算法。

@@ -48,7 +48,7 @@ impl Server {
         stream.read(&mut buffer).unwrap();
         let message: Cow<str> = String::from_utf8_lossy(&buffer[..]);
         let chess_board: &str = message.trim_end_matches('\u{0}');
-
+        // FEN文字列をプリントする
         println!("input=[{}]", chess_board);
         self.board.init_board(chess_board);
 
