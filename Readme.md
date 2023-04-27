@@ -1,5 +1,3 @@
-### Language：[中文](Readme.md "Readme.md") [日本語](Readme_jp.md "Readme_jp.md")
----
 ### 紹介
 中国将棋バックエンドプログラムである。<br>
 Rustの基本文法とミニマックス法(minimax)を勉強するため作りました。
