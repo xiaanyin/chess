@@ -312,7 +312,7 @@ impl Board {
         let mut best_value = i32::min_value();
         let mut all_moves: Vec<MinMaxNode> = self.generate_all_moves(&Side::Black);
         if DEBUG_MODE {
-            self.test_print_all_moves("all_moves", &all_moves);
+            //self.test_print_all_moves("all_moves", &all_moves);
         }
         while let Some(node) = all_moves.pop() {
             let position_to_backup: Option<char> = self.temporary_move(node.from, node.to);
@@ -323,7 +323,7 @@ impl Board {
             }
             self.recovery(node.from, node.to, position_to_backup);
             if DEBUG_MODE {
-                self.test_print_node("node", &node, value)
+                //self.test_print_node("node", &node, value)
             }
         }
         self.translate(best_move.unwrap().from, best_move.unwrap().to)
